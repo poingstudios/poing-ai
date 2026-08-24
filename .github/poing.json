@@ -1,0 +1,71 @@
+{
+  "$schema": "https://poingstudios.com/schemas/poing-reviewer.json",
+  "engine": "auto",
+  "review": {
+    "enabled": true,
+    "model": "gemini-3.7-flash",
+    "fallback_models": [
+      "gemini-3.6-flash",
+      "gemini-3.5-flash",
+      "gemini-3.5-flash-lite",
+      "gemma-4-31b-it"
+    ],
+    "max_chars": 100000,
+    "max_batches": 5,
+    "strict_ground_truth": true
+  },
+  "triage": {
+    "enabled": true,
+    "model": "gemma-4-31b-it",
+    "fallback_models": [
+      "gemma-4-26b-it",
+      "gemini-3.5-flash-lite",
+      "gemini-3.5-flash",
+      "gemini-3.6-flash",
+      "gemini-3.7-flash"
+    ],
+    "auto_label": true,
+    "auto_priority": true
+  },
+  "dependencies": {
+    "enabled": true,
+    "model": "gemini-3.5-flash-lite",
+    "fallback_models": [
+      "gemini-3.5-flash",
+      "gemini-3.6-flash",
+      "gemini-3.7-flash",
+      "gemma-4-31b-it"
+    ],
+    "branch_prefix": "deps/",
+    "labels": ["dependencies", "automated"],
+    "targets": [
+      {
+        "type": "gdscript_config",
+        "paths": [
+          "platforms/android/src/**/config/*.gd",
+          "platforms/ios/src/**/config/*.gd"
+        ]
+      },
+      {
+        "type": "gradle",
+        "paths": [
+          "platforms/android/build.gradle",
+          "platforms/android/gradle.properties"
+        ]
+      },
+      {
+        "type": "swift_package",
+        "paths": [
+          "platforms/ios/Package.swift"
+        ]
+      },
+      {
+        "type": "unity_package",
+        "paths": [
+          "Packages/manifest.json",
+          "**/package.json"
+        ]
+      }
+    ]
+  }
+}

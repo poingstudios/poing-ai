@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "poing-reviewer"
+version = "1.0.0"
+description = "AI-powered automated code review, triage, and multi-platform dependency updater for game engines and native repositories."
+readme = "README.md"
+authors = [{ name = "Poing Studios", email = "contact@poingstudios.com" }]
+license = { text = "Apache-2.0" }
+requires-python = ">=3.9"
+dependencies = [
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-mock>=3.11.0",
+]
+
+[project.scripts]
+poing-reviewer = "poing_reviewer.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
