@@ -156,7 +156,7 @@ class Config:
         self.DRY_RUN = dry_run or (get_env_optional("DRY_RUN", "false").lower() == "true")
 
         self.GEMINI_API_KEY = (
-            gemini_api_key or get_env_optional("GEMINI_API_KEY") or get_env_optional("GEMMA_API_KEY")
+            gemini_api_key or get_env_optional("GEMINI_API_KEY")
         )
         self.GITHUB_TOKEN = github_token or get_env_optional("GITHUB_TOKEN") or get_env_optional("GH_TOKEN")
         self.REPO = repo or get_env_optional("REPO") or get_env_optional("GITHUB_REPOSITORY")
