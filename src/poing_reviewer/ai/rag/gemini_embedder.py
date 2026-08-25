@@ -20,11 +20,11 @@ from poing_reviewer.core.logging import get_logger
 
 logger = get_logger("ai.rag.gemini_embedder")
 
-EMBEDDING_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:embedContent"
-
+EMBEDDING_API_VERSIONS = ["v1", "v1beta"]
 
 FALLBACK_EMBEDDING_MODELS = [
     "text-embedding-004",
+    "gemini-embedding-exp-03-07",
     "embedding-001",
 ]
 
@@ -47,37 +47,38 @@ class GeminiEmbedder(BaseEmbedder):
         if not self.api_key or not text.strip():
             return []
 
-        for model in self.models_to_try:
-            url = EMBEDDING_API_URL.format(model=model) + f"?key={self.api_key}"
-            payload: Dict[str, Any] = {
-                "model": f"models/{model}",
-                "content": {
-                    "parts": [{"text": text[:8000]}]
-                },
-            }
+        for api_ver in EMBEDDING_API_VERSIONS:
+            for model in self.models_to_try:
+                url = f"https://generativelanguage.googleapis.com/{api_ver}/models/{model}:embedContent?key={self.api_key}"
+                payload: Dict[str, Any] = {
+                    "model": f"models/{model}",
+                    "content": {
+                        "parts": [{"text": text[:8000]}]
+                    },
+                }
 
-            for attempt in range(3):
-                try:
-                    resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        embedding = data.get("embedding", {}).get("values", [])
-                        if embedding:
-                            return embedding
+                for attempt in range(3):
+                    try:
+                        resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            embedding = data.get("embedding", {}).get("values", [])
+                            if embedding:
+                                return embedding
 
-                    if resp.status_code in (429, 503) and attempt < 2:
-                        import time
-                        time.sleep(2 ** attempt * 2)
-                        continue
+                        if resp.status_code in (429, 503) and attempt < 2:
+                            import time
+                            time.sleep(2 ** attempt * 2)
+                            continue
 
-                    logger.warning(f"Embedding API error ({model}): {resp.status_code} {resp.text[:150]}")
-                    break
-                except Exception as e:
-                    logger.warning(f"Embedding request failed for {model}: {e}")
-                    if attempt < 2:
-                        import time
-                        time.sleep(2 ** attempt * 2)
-                        continue
-                    break
+                        logger.warning(f"Embedding API error ({model}): {resp.status_code} {resp.text[:150]}")
+                        break
+                    except Exception as e:
+                        logger.warning(f"Embedding request failed for {model}: {e}")
+                        if attempt < 2:
+                            import time
+                            time.sleep(2 ** attempt * 2)
+                            continue
+                        break
 
         return []

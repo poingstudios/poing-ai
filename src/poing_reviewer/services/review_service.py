@@ -258,15 +258,23 @@ class ReviewService:
         return final_result
 
     def _build_review_body(self, result: ReviewResult) -> str:
+        short_sha = self.cfg.HEAD_SHA[:10] if self.cfg.HEAD_SHA else ""
+        sha_line = f"**Reviewed commit:** `{short_sha}`\n" if short_sha else ""
+
         body_parts = [
-            f"## Poing Reviewer\n",
-            f"### Verdict: {VERDICT_MAP.get(result.verdict.value, str(result.verdict))}\n",
+            "### 💡 Poing Reviewer\n",
+            "Here are the automated review suggestions for this pull request.\n",
         ]
+        if sha_line:
+            body_parts.append(sha_line)
+
+        body_parts.append(f"**Verdict:** {VERDICT_MAP.get(result.verdict.value, str(result.verdict))}\n")
+
         if result.summary:
             body_parts.append(f"{result.summary}\n")
 
         if result.findings:
-            body_parts.append("### Findings\n")
+            body_parts.append("#### Findings\n")
             body_parts.append("| Severity | File | Finding |")
             body_parts.append("|---|---|---|")
             for f in result.findings:
@@ -275,6 +283,16 @@ class ReviewService:
             body_parts.append("")
         else:
             body_parts.append("✅ No issues found. Clean changes!\n")
+
+        body_parts.append(
+            "<details>\n"
+            "<summary>ℹ️ <b>About Poing Reviewer</b></summary>\n<br>\n\n"
+            "**[Poing Reviewer](https://github.com/poingstudios/poing-reviewer)** provides automated code reviews and guidelines verification for Godot, Unity, Unreal, and multi-platform repositories.\n\n"
+            "- 🎮 **Engine-Aware**: Enforces engine-specific conventions, memory management, and typing rules.\n"
+            "- 🛡️ **Ground Truth**: Validates imports and references against full source files to eliminate hallucinations.\n"
+            "- 👎 **Learning Feedback**: React with 👎 to any comment to suppress false positives on future commits.\n"
+            "</details>"
+        )
 
         return "\n".join(body_parts)
 
