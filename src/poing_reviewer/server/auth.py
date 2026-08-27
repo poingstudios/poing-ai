@@ -72,3 +72,4 @@ def get_installation_token(app_id: str, private_key_pem: str, installation_id: i
         logger.error(f"Error requesting installation token: {e}")
 
     return None
+

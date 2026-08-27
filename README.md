@@ -17,11 +17,24 @@
 
 ---
 
-## 🚀 GitHub Actions Setup
+## 🚀 Quick Start (GitHub Actions)
 
-### 1. Unified Review & Triage Workflow
+Any developer or repository can use **Poing Reviewer** in 2 simple steps:
 
-Create `.github/workflows/poing-reviewer.yml`:
+---
+
+### Step 1: Add your Gemini API Key
+
+1. Get a free API key from **[Google AI Studio](https://aistudio.google.com/)**.
+2. In your repository: Go to **Settings ➡️ Secrets and variables ➡️ Actions ➡️ New repository secret**.
+3. Name: **`GEMINI_API_KEY`**  
+   Value: *Your Gemini API key*.
+
+---
+
+### Step 2: Create Workflow (`.github/workflows/poing-reviewer.yml`)
+
+Create `.github/workflows/poing-reviewer.yml` in your repository:
 
 ```yaml
 name: "Poing Reviewer"
@@ -41,17 +54,16 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Run Reviewer
-        uses: poingstudios/poing-reviewer@v1
+        uses: poingstudios/poing-reviewer@master
         with:
           mode: review
           github-token: ${{ secrets.GITHUB_TOKEN }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
-          model: gemini-3.5-flash
 
   triage:
     if: github.event_name == 'issues'
@@ -59,8 +71,11 @@ jobs:
     permissions:
       issues: write
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
       - name: Run Triage
-        uses: poingstudios/poing-reviewer@v1
+        uses: poingstudios/poing-reviewer@master
         with:
           mode: triage
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -105,7 +120,7 @@ jobs:
         run: |
           BRANCH="deps/sync-dependencies"
           git config user.name "poing-reviewer[bot]"
-          git config user.email "bot@poingstudios.com"
+          git config user.email "296332247+poing-reviewer[bot]@users.noreply.github.com"
           git checkout -B "$BRANCH"
           git commit -am "chore(deps): synchronize upstream dependencies"
           git push -f origin "$BRANCH"
