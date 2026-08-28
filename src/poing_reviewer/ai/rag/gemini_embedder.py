@@ -20,11 +20,10 @@ from poing_reviewer.core.logging import get_logger
 
 logger = get_logger("ai.rag.gemini_embedder")
 
-EMBEDDING_API_VERSIONS = ["v1", "v1beta"]
+EMBEDDING_API_VERSIONS = ["v1beta"]
 
 FALLBACK_EMBEDDING_MODELS = [
     "text-embedding-004",
-    "gemini-embedding-exp-03-07",
     "embedding-001",
 ]
 
@@ -51,7 +50,6 @@ class GeminiEmbedder(BaseEmbedder):
             for model in self.models_to_try:
                 url = f"https://generativelanguage.googleapis.com/{api_ver}/models/{model}:embedContent?key={self.api_key}"
                 payload: Dict[str, Any] = {
-                    "model": f"models/{model}",
                     "content": {
                         "parts": [{"text": text[:8000]}]
                     },
