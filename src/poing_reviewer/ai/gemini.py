@@ -144,13 +144,13 @@ class GeminiProvider(BaseAIProvider):
             payload["generationConfig"]["responseMimeType"] = "application/json"
             payload["generationConfig"]["responseSchema"] = response_schema
 
-        for attempt in range(4):
+        for attempt in range(2):
             try:
                 resp = requests.post(
                     url,
                     json=payload,
                     headers={"Content-Type": "application/json"},
-                    timeout=60,
+                    timeout=30,
                 )
                 if resp.status_code == 200:
                     data = resp.json()
@@ -164,19 +164,21 @@ class GeminiProvider(BaseAIProvider):
                             feedback += part.get("text", "")
                     return feedback.strip() if feedback.strip() else None
 
-                if resp.status_code in (429, 503) and attempt < 3:
-                    wait = 2 ** attempt * 5
-                    logger.warning(f"Model {model_name} busy ({resp.status_code}), retry {attempt + 1}/3 in {wait}s...")
+                if resp.status_code in (429, 503) and attempt < 1:
+                    wait = 3
+                    logger.warning(f"Model {model_name} busy ({resp.status_code}), retry in {wait}s...")
                     time.sleep(wait)
                     continue
 
                 logger.error(f"API error ({model_name}): {resp.status_code} {resp.text}")
                 return None
+            except requests.exceptions.Timeout:
+                logger.warning(f"Model {model_name} timed out after 30s. Failing over to next fallback model...")
+                return None
             except requests.exceptions.RequestException as e:
                 logger.error(f"Request failed for {model_name}: {e}")
-                if attempt < 3:
-                    wait = 2 ** attempt * 5
-                    time.sleep(wait)
+                if attempt < 1:
+                    time.sleep(2)
                     continue
                 return None
         return None

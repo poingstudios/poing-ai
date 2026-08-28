@@ -59,29 +59,36 @@ class VectorRAGRetriever(BaseRetriever):
             for md_file in list(docs_dir.glob("**/*.md"))[:10]:
                 candidate_paths.append(md_file)
 
-        for path in candidate_paths:
-            if path.exists() and path.is_file():
-                try:
-                    content = path.read_text(encoding="utf-8", errors="replace").strip()
-                    if not content:
-                        continue
-                    # Chunk content by sections or length (up to 2000 chars per chunk)
-                    chunks = [content[i : i + 2000] for i in range(0, len(content), 1800)]
-                    rel_source = str(path.relative_to(self.root_dir) if path.is_relative_to(self.root_dir) else path)
+        existing_paths = [p for p in candidate_paths if p.exists() and p.is_file()]
+        logger.info(f"Building vector index for {len(existing_paths)} documentation and guideline file(s)...")
 
-                    for idx, chunk in enumerate(chunks):
-                        emb = self.embedder.embed_text(chunk)
-                        if emb:
-                            doc = RetrievedDocument(
-                                source=f"{rel_source}#chunk{idx+1}",
-                                content=chunk,
-                                score=1.0,
-                            )
-                            self._index.append((doc, emb))
-                except Exception as e:
-                    logger.warning(f"Error indexing doc file {path}: {e}")
+        for path in existing_paths:
+            try:
+                content = path.read_text(encoding="utf-8", errors="replace").strip()
+                if not content:
+                    continue
+                # Chunk content by sections or length (up to 2000 chars per chunk)
+                chunks = [content[i : i + 2000] for i in range(0, len(content), 1800)]
+                rel_source = str(path.relative_to(self.root_dir) if path.is_relative_to(self.root_dir) else path)
+
+                for idx, chunk in enumerate(chunks):
+                    emb = self.embedder.embed_text(chunk)
+                    if emb:
+                        doc = RetrievedDocument(
+                            source=f"{rel_source}#chunk{idx+1}",
+                            content=chunk,
+                            score=1.0,
+                        )
+                        self._index.append((doc, emb))
+            except Exception as e:
+                logger.warning(f"Error indexing doc file {path}: {e}")
 
         self._indexed = True
+        if self._index:
+            dims = len(self._index[0][1])
+            logger.info(f"✅ Vector index built: {len(self._index)} chunk(s) indexed ({dims}-dim embeddings).")
+        else:
+            logger.info("ℹ️ Vector index empty; falling back to direct document scanning.")
 
     def retrieve(self, query: str, top_k: int = 5) -> List[RetrievedDocument]:
         if not self._indexed:
@@ -90,9 +97,10 @@ class VectorRAGRetriever(BaseRetriever):
         if not self._index:
             return []
 
+        logger.info(f"Querying vector index for relevant guidelines...")
         query_emb = self.embedder.embed_text(query)
         if not query_emb:
-            # Fallback to top index documents if query embedding failed
+            logger.info("Query embedding failed; using top indexed sections.")
             return [doc for doc, _ in self._index[:top_k]]
 
         scored: List[Tuple[float, RetrievedDocument]] = []
@@ -107,4 +115,7 @@ class VectorRAGRetriever(BaseRetriever):
             scored.append((score, doc_with_score))
 
         scored.sort(key=lambda x: x[0], reverse=True)
-        return [doc for _, doc in scored[:top_k]]
+        results = [doc for _, doc in scored[:top_k]]
+        if results:
+            logger.info(f"✅ Vector RAG matched {len(results)} relevant section(s) (top similarity: {results[0].score}).")
+        return results

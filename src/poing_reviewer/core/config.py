@@ -21,11 +21,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 
 FALLBACK_MODELS = [
-    "gemini-2.5-flash",
     "gemini-3.7-flash",
     "gemini-3.6-flash",
     "gemini-3.5-flash",
     "gemini-3.5-flash-lite",
+    "gemini-2.5-flash",
     "gemma-4-31b-it",
     "gemma-4-26b-it",
 ]

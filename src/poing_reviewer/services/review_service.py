@@ -158,6 +158,7 @@ class ReviewService:
         file_blocks = split_diff_by_file(diff)
         batches = split_batches(file_blocks, self.cfg.MAX_CHARS)[:self.cfg.MAX_BATCHES]
         total_batches = len(batches)
+        logger.info(f"Diff analyzed: {len(file_blocks)} file(s), {len(diff)} chars. Split into {total_batches} review batch(es).")
 
         all_results: List[ReviewResult] = []
         all_valid_lines: Set[Tuple[str, int]] = set()
@@ -169,6 +170,9 @@ class ReviewService:
             all_valid_lines.update(valid_lines)
 
             batch_file_paths = {p for p, _ in valid_lines}
+            files_preview = ", ".join(sorted(batch_file_paths)[:4]) + ("..." if len(batch_file_paths) > 4 else "")
+            logger.info(f"Processing batch {i + 1}/{total_batches} ({len(batch_file_paths)} file(s): {files_preview})...")
+
             file_contents = (
                 load_file_contents_for_diff(batch_file_paths, root_dir=self.root_dir)
                 if self.cfg.STRICT_GROUND_TRUTH
@@ -187,6 +191,7 @@ class ReviewService:
 
             result = self.ai.generate_review(prompt)
             if result:
+                logger.info(f"Batch {i + 1}/{total_batches} analyzed: verdict={result.verdict.value}, {len(result.findings)} finding(s), {len(result.comments)} inline comment(s).")
                 all_results.append(result)
 
         if not all_results:
@@ -203,6 +208,7 @@ class ReviewService:
         final_verdict = pick_verdict(verdicts)
         summaries = [r.summary for r in all_results if r.summary]
         final_summary = " ".join(summaries)
+        logger.info(f"Review aggregated: overall verdict={final_verdict.value}.")
 
         # Deduplicate Findings & Comments
         seen_findings: Set[str] = set()

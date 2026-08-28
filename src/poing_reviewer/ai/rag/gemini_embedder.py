@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from typing import Any, Dict, List, Optional
 import requests
 
@@ -65,7 +66,6 @@ class GeminiEmbedder(BaseEmbedder):
                                 return embedding
 
                         if resp.status_code in (429, 503) and attempt < 2:
-                            import time
                             time.sleep(2 ** attempt * 2)
                             continue
 
@@ -74,7 +74,6 @@ class GeminiEmbedder(BaseEmbedder):
                     except Exception as e:
                         logger.warning(f"Embedding request failed for {model}: {e}")
                         if attempt < 2:
-                            import time
                             time.sleep(2 ** attempt * 2)
                             continue
                         break
