@@ -23,8 +23,8 @@ logger = get_logger("ai.rag.gemini_embedder")
 EMBEDDING_API_VERSIONS = ["v1beta"]
 
 FALLBACK_EMBEDDING_MODELS = [
-    "text-embedding-004",
-    "embedding-001",
+    "gemini-embedding-2-preview",
+    "gemini-embedding-001",
 ]
 
 
@@ -34,7 +34,7 @@ class GeminiEmbedder(BaseEmbedder):
     def __init__(
         self,
         api_key: str,
-        primary_model: str = "text-embedding-004",
+        primary_model: str = "gemini-embedding-2-preview",
         fallback_models: Optional[List[str]] = None,
     ):
         self.api_key = api_key

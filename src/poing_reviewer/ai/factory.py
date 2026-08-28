@@ -56,8 +56,9 @@ def create_ai_provider(config: Config) -> BaseAIProvider:
 
     if provider_name == "gemini":
         logger.info("Using Google Gemini provider")
+        api_key = config.GEMINI_API_KEY or config.API_KEY or ""
         return GeminiProvider(
-            api_key=config.GEMINI_API_KEY,
+            api_key=api_key,
             models_to_try=config.MODELS_TO_TRY,
         )
 
