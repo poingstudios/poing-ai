@@ -29,6 +29,21 @@ FALLBACK_MODELS = [
     "gemma-4-26b-it",
 ]
 
+OLLAMA_FALLBACK_MODELS = [
+    "deepseek-r1:latest",
+    "deepseek-coder:6.7b",
+    "qwen2.5-coder:7b",
+    "llama3.3:latest",
+    "codellama:latest",
+]
+
+OPENAI_FALLBACK_MODELS = [
+    "gpt-4o-mini",
+    "gpt-4o",
+    "deepseek-chat",
+    "deepseek-reasoner",
+]
+
 VERDICT_PRIORITY = {
     "CHANGES_REQUESTED": 2,
     "APPROVED_WITH_SUGGESTIONS": 1,
@@ -99,9 +114,16 @@ def parse_repo(repo: str) -> Tuple[str, str]:
     return parts[0], parts[1]
 
 
-def build_model_list(primary: str, fallback_env: str = "") -> List[str]:
+def build_model_list(primary: str, fallback_env: str = "", provider: str = "gemini") -> List[str]:
     fallback = [m.strip() for m in fallback_env.split(",") if m.strip()]
-    models = [primary] + fallback + FALLBACK_MODELS
+    if provider == "ollama":
+        base_fallbacks = OLLAMA_FALLBACK_MODELS
+    elif provider in ("openai", "openai-compatible", "deepseek"):
+        base_fallbacks = OPENAI_FALLBACK_MODELS
+    else:
+        base_fallbacks = FALLBACK_MODELS
+
+    models = [primary] + fallback + base_fallbacks
     seen = set()
     return [m for m in models if not (m in seen or seen.add(m))]
 
@@ -127,7 +149,12 @@ class Config:
     def __init__(
         self,
         mode: Optional[str] = None,
+        provider: Optional[str] = None,
+        api_base: Optional[str] = None,
+        api_key: Optional[str] = None,
         gemini_api_key: Optional[str] = None,
+        openai_api_key: Optional[str] = None,
+        deepseek_api_key: Optional[str] = None,
         github_token: Optional[str] = None,
         repo: Optional[str] = None,
         pr_number: Optional[str] = None,
@@ -143,6 +170,11 @@ class Config:
         max_batches: Optional[int] = None,
         local: bool = False,
         dry_run: bool = False,
+        staged: bool = False,
+        diff_target: Optional[str] = None,
+        files: Optional[List[str]] = None,
+        output_format: Optional[str] = None,
+        fail_on_changes: bool = False,
         config_data: Optional[Dict[str, Any]] = None,
     ):
         file_config = config_data if config_data is not None else load_repo_config()
@@ -154,10 +186,60 @@ class Config:
 
         self.LOCAL = local or (get_env_optional("LOCAL", "false").lower() == "true")
         self.DRY_RUN = dry_run or (get_env_optional("DRY_RUN", "false").lower() == "true")
+        self.STAGED = staged or (get_env_optional("STAGED", "false").lower() == "true")
+        self.DIFF_TARGET = diff_target or get_env_optional("DIFF_TARGET") or None
+        self.FILES = files or ([f.strip() for f in get_env_optional("FILES").split(",") if f.strip()] if get_env_optional("FILES") else None)
+        self.OUTPUT_FORMAT = output_format or get_env_optional("OUTPUT_FORMAT", "terminal").lower()
+        self.FAIL_ON_CHANGES = fail_on_changes or (get_env_optional("FAIL_ON_CHANGES", "false").lower() == "true")
+
+        section_key = "review"
+        if self.MODE == "triage":
+            section_key = "triage"
+        elif self.MODE in ("sync", "dependencies"):
+            section_key = "dependencies"
+
+        section_cfg = file_config.get(section_key, {})
+
+        # Provider configuration
+        configured_provider = section_cfg.get("provider") or file_config.get("provider")
+        self.PROVIDER = (
+            provider
+            or get_env_optional("AI_PROVIDER")
+            or get_env_optional("PROVIDER")
+            or configured_provider
+            or "auto"
+        ).lower()
+
+        # API Base & Keys
+        configured_api_base = section_cfg.get("api_base") or file_config.get("api_base")
+        self.API_BASE = (
+            api_base
+            or get_env_optional("AI_BASE_URL")
+            or get_env_optional("API_BASE")
+            or get_env_optional("OLLAMA_HOST")
+            or get_env_optional("OLLAMA_BASE_URL")
+            or get_env_optional("OPENAI_BASE_URL")
+            or configured_api_base
+        )
 
         self.GEMINI_API_KEY = (
             gemini_api_key or get_env_optional("GEMINI_API_KEY")
         )
+        self.OPENAI_API_KEY = (
+            openai_api_key or get_env_optional("OPENAI_API_KEY")
+        )
+        self.DEEPSEEK_API_KEY = (
+            deepseek_api_key or get_env_optional("DEEPSEEK_API_KEY")
+        )
+        self.API_KEY = (
+            api_key
+            or get_env_optional("AI_API_KEY")
+            or get_env_optional("API_KEY")
+            or self.GEMINI_API_KEY
+            or self.OPENAI_API_KEY
+            or self.DEEPSEEK_API_KEY
+        )
+
         self.GITHUB_TOKEN = github_token or get_env_optional("GITHUB_TOKEN") or get_env_optional("GH_TOKEN")
         self.REPO = repo or get_env_optional("REPO") or get_env_optional("GITHUB_REPOSITORY")
         self.owner, self.repo_name = parse_repo(self.REPO)
@@ -176,19 +258,27 @@ class Config:
         self.BOT_LOGIN = get_env_optional("BOT_LOGIN")
         self.TRIGGER_ACTION = get_env_optional("TRIGGER_ACTION")
 
-        section_key = "review"
-        if self.MODE == "triage":
-            section_key = "triage"
-        elif self.MODE in ("sync", "dependencies"):
-            section_key = "dependencies"
+        # Determine default model
+        configured_model = section_cfg.get("model")
+        if self.PROVIDER == "ollama":
+            default_model = configured_model if configured_provider == "ollama" else None
+        elif self.PROVIDER in ("openai", "openai-compatible"):
+            default_model = configured_model if configured_provider in ("openai", "openai-compatible") else "gpt-4o-mini"
+        elif self.PROVIDER == "deepseek":
+            default_model = configured_model if configured_provider == "deepseek" else "deepseek-chat"
+        else:
+            default_model = configured_model or "gemini-3.7-flash"
 
-        section_cfg = file_config.get(section_key, {})
-        default_model = section_cfg.get("model", "gemini-3.7-flash")
-        self.PRIMARY_MODEL = model_name or get_env_optional("MODEL_NAME", default_model)
-        fallback_str = ",".join(section_cfg.get("fallback_models", []))
-        self.MODELS_TO_TRY = build_model_list(
-            self.PRIMARY_MODEL, get_env_optional("FALLBACK_MODELS", fallback_str)
-        )
+        self.PRIMARY_MODEL = model_name or get_env_optional("MODEL_NAME") or default_model
+        fallback_str = ",".join(section_cfg.get("fallback_models", [])) if (configured_provider == self.PROVIDER or self.PROVIDER == "gemini") else ""
+        if self.PRIMARY_MODEL:
+            self.MODELS_TO_TRY = build_model_list(
+                self.PRIMARY_MODEL,
+                get_env_optional("FALLBACK_MODELS", fallback_str),
+                provider=self.PROVIDER,
+            )
+        else:
+            self.MODELS_TO_TRY = []
 
         default_max_chars = section_cfg.get("max_chars", 100000)
         self.MAX_CHARS = max_chars or int(get_env_optional("MAX_CHARS", str(default_max_chars)))

@@ -17,7 +17,7 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 from poing_reviewer.ai.base import BaseAIProvider
-from poing_reviewer.ai.gemini import GeminiProvider
+from poing_reviewer.ai.factory import create_ai_provider
 from poing_reviewer.ai.prompts.triage import build_triage_prompt
 from poing_reviewer.core.config import (
     AVAILABLE_LABELS,
@@ -62,10 +62,7 @@ class TriageService:
     ):
         self.cfg = config
         self.root_dir = root_dir or Path.cwd()
-        self.ai = ai_provider or GeminiProvider(
-            api_key=config.GEMINI_API_KEY,
-            models_to_try=config.MODELS_TO_TRY,
-        )
+        self.ai = ai_provider or create_ai_provider(config)
         self.client = github_client or GitHubClient(token=config.GITHUB_TOKEN)
 
     def _ensure_labels_exist(self, labels_to_ensure: List[str], existing_labels: List[Dict[str, Any]]) -> None:

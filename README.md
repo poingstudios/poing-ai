@@ -165,25 +165,82 @@ Configure repository rules in `.github/poing.json`:
 
 ## 💻 Local CLI Usage
 
-Install the package locally:
+Install the package locally in editable mode:
 
 ```bash
 pip install -e .
 ```
 
-### Review local working directory diff:
+### 1. Running with Local Models (Ollama)
+
+You can run Poing Reviewer 100% locally with zero cloud API keys using **[Ollama](https://ollama.com/)** and models like **DeepSeek-R1**, **DeepSeek-Coder**, **Qwen 2.5 Coder**, or **Llama 3.3**:
+
 ```bash
-poing-reviewer --mode review --local
+# 1. Start Ollama and pull your preferred model
+ollama pull deepseek-r1:latest
+
+# 2. Run local review against your uncommitted changes
+poing-reviewer --local --provider ollama --model deepseek-r1:latest
 ```
 
-### Check and preview dependency updates (dry run):
+### 2. Running with Remote Models
+
+#### Google Gemini (Default)
 ```bash
+export GEMINI_API_KEY="your-gemini-api-key"
+poing-reviewer --local --provider gemini --model gemini-3.7-flash
+```
+
+#### DeepSeek API (Remote)
+```bash
+export DEEPSEEK_API_KEY="your-deepseek-api-key"
+poing-reviewer --local --provider deepseek --model deepseek-chat
+```
+
+#### OpenAI / OpenAI-Compatible (Groq, OpenRouter, vLLM, LM Studio)
+```bash
+export OPENAI_API_KEY="your-api-key"
+poing-reviewer --local --provider openai --model gpt-4o-mini
+```
+
+### 3. Advanced Local Diff Options
+
+```bash
+# Review only staged changes (git diff --cached)
+poing-reviewer --local --staged
+
+# Review against a specific commit or branch diff
+poing-reviewer --local --diff-target "origin/master...HEAD"
+
+# Review specific modified file(s) only
+poing-reviewer --local --files src/core/git.py src/services/review_service.py
+
+# Format output as JSON (for tooling integration)
+poing-reviewer --local --output json
+
+# Git Pre-commit hook mode (returns exit code 1 on CHANGES_REQUESTED)
+poing-reviewer --local --staged --fail-on-changes
+```
+
+### 4. Local Issue Triage & Dependency Sync
+
+```bash
+# Simulate issue triage locally
+poing-reviewer --mode triage --local --issue-title "App crashes on launch" --issue-body "Null pointer on Android 14"
+
+# Check and preview dependency updates (dry run)
 poing-reviewer --mode sync --local --dry-run
 ```
 
-### Simulate issue triage:
+---
+
+## 🪝 Git Pre-Commit Hook Integration
+
+Add Poing Reviewer to your `.git/hooks/pre-commit` to review staged code before committing:
+
 ```bash
-poing-reviewer --mode triage --local --issue-title "App crashes on launch" --issue-body "Null pointer on Android 14"
+#!/bin/sh
+poing-reviewer --local --staged --provider ollama --model deepseek-r1:latest --fail-on-changes
 ```
 
 ---

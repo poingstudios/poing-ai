@@ -17,7 +17,7 @@ import sys
 from typing import Any, Dict, List, Optional
 
 from poing_reviewer.ai.base import BaseAIProvider
-from poing_reviewer.ai.gemini import GeminiProvider
+from poing_reviewer.ai.factory import create_ai_provider
 from poing_reviewer.ai.prompts.changelog import build_changelog_prompt
 from poing_reviewer.core.config import Config
 from poing_reviewer.core.logging import get_logger
@@ -41,10 +41,7 @@ class SyncService:
     ):
         self.cfg = config
         self.root_dir = root_dir or Path.cwd()
-        self.ai = ai_provider or GeminiProvider(
-            api_key=config.GEMINI_API_KEY,
-            models_to_try=config.MODELS_TO_TRY,
-        )
+        self.ai = ai_provider or create_ai_provider(config)
 
         self.parsers: Dict[str, BaseParser] = {
             "gdscript_config": GDScriptConfigParser(root_dir=self.root_dir),
@@ -129,11 +126,13 @@ class SyncService:
 
         # Generate AI Changelog Summary
         changelog_notes = ""
-        if self.cfg.GEMINI_API_KEY:
+        try:
             prompt = build_changelog_prompt(all_updates)
             ai_summary = self.ai.generate_changelog_summary(prompt)
             if ai_summary:
                 changelog_notes = ai_summary
+        except Exception as e:
+            logger.warning(f"Could not generate AI changelog summary: {e}")
 
         if not changelog_notes:
             changelog_notes = f"### Dependency Updates\n\n{summary_table}"
