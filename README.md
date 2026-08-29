@@ -16,7 +16,6 @@
 - 🎮 **Game Engine Analyzers**: Built-in guideline checks for **Godot Engine** (e.g. `:=` typing, `class_name` internal rules), **Unity**, and **Unreal Engine**.
 - 🏷️ **Automated Issue & PR Triage**: Classifies incoming issues into labels, assigns priority (`high`, `medium`, `low`), checks duplicates, and ensures repository labels exist.
 - 📦 **Multi-Platform Dependency Sync**: Automatically checks and bumps upstream dependencies (Google Maven, Maven Central, Swift Package Manager, Godot Releases, Unity UPM, NuGet) with AI release summaries.
-- 🤖 **Official Bot Identity**: Easily runs as `poing-reviewer[bot]` via GitHub App integration ([Setup Guide](docs/github_app_setup.md)).
 - 💻 **Local CLI Mode**: Review local git diffs, staged changes, and test triage/dependencies directly from your terminal without opening a PR.
 - 🧩 **Pluggable & Extensible**: Modular Clean Architecture ready for Vector RAG search, local LLMs (Ollama / vLLM), OpenAI-compatible APIs, and Google Gemini.
 
@@ -87,8 +86,6 @@ jobs:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 ```
 
-*(Optional: Want the bot to post with the official `poing-reviewer[bot]` avatar? Follow the [GitHub App Setup Guide](docs/github_app_setup.md).)*
-
 ---
 
 ### 3. Dependency Sync Cron Workflow
@@ -128,8 +125,8 @@ jobs:
           BODY: ${{ steps.sync.outputs.pr_body }}
         run: |
           BRANCH="deps/sync-dependencies"
-          git config user.name "poing-reviewer[bot]"
-          git config user.email "296332247+poing-reviewer[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -B "$BRANCH"
           git commit -am "chore(deps): synchronize upstream dependencies"
           git push -f origin "$BRANCH"
