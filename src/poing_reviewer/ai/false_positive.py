@@ -23,7 +23,7 @@ logger = get_logger("ai.false_positive")
 
 
 def strip_footer(body: str) -> str:
-    idx = body.rfind("\n\n---\n>")
+    idx = body.rfind("\n\n---\n")
     if idx != -1:
         return body[:idx].strip()
     return body.strip()

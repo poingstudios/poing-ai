@@ -278,43 +278,37 @@ class ReviewService:
         short_sha = self.cfg.HEAD_SHA[:10] if self.cfg.HEAD_SHA else ""
         if short_sha and self.cfg.REPO:
             commit_url = f"https://github.com/{self.cfg.REPO}/commit/{self.cfg.HEAD_SHA}"
-            sha_line = f"**Reviewed commit:** [`{short_sha}`]({commit_url})\n"
+            sha_line = f"**Commit:** [`{short_sha}`]({commit_url})\n"
         elif short_sha:
-            sha_line = f"**Reviewed commit:** `{short_sha}`\n"
+            sha_line = f"**Commit:** `{short_sha}`\n"
         else:
             sha_line = ""
 
-        body_parts = [
-            "### 💡 Poing Reviewer\n",
-            "Here are the automated review suggestions for this pull request.\n",
-        ]
+        verdict_label = VERDICT_MAP.get(result.verdict.value, str(result.verdict))
+
+        body_parts = [f"## 🤖 Poing Reviewer\n"]
+
         if sha_line:
             body_parts.append(sha_line)
 
-        body_parts.append(f"**Verdict:** {VERDICT_MAP.get(result.verdict.value, str(result.verdict))}\n")
+        body_parts.append(f"{verdict_label}\n")
 
         if result.summary:
             body_parts.append(f"{result.summary}\n")
 
         if result.findings:
-            body_parts.append("#### Findings\n")
+            body_parts.append("### Findings\n")
             body_parts.append("| Severity | File | Finding |")
             body_parts.append("|---|---|---|")
             for f in result.findings:
                 clean_finding = f.finding.replace("\n", " ").replace("|", "\\|")
                 body_parts.append(f"| {f.severity} | `{f.file}` | {clean_finding} |")
             body_parts.append("")
-        else:
-            body_parts.append("✅ No issues found. Clean changes!\n")
 
         body_parts.append(
-            "<details>\n"
-            "<summary>ℹ️ <b>About Poing Reviewer</b></summary>\n<br>\n\n"
-            "**[Poing Reviewer](https://github.com/poingstudios/poing-reviewer)** provides automated code reviews and guidelines verification for Godot, Unity, Unreal, and multi-platform repositories.\n\n"
-            "- 🎮 **Engine-Aware**: Enforces engine-specific conventions, memory management, and typing rules.\n"
-            "- 🛡️ **Ground Truth**: Validates imports and references against full source files to eliminate hallucinations.\n"
-            "- 👎 **Learning Feedback**: React with 👎 to any comment to suppress false positives on future commits.\n"
-            "</details>"
+            "\n---\n"
+            "<sub>Reviewed by [Poing Reviewer](https://github.com/poingstudios/poing-reviewer) · "
+            "React with 👎 to suppress false positives</sub>"
         )
 
         return "\n".join(body_parts)
