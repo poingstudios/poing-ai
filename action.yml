@@ -59,7 +59,7 @@ runs:
       shell: bash
 
     - name: Fetch Base Branch (Review Mode)
-      if: inputs.mode == 'review' && github.event_name == 'pull_request'
+      if: inputs.mode == 'review' && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target')
       run: |
         BASE="${{ inputs.base-ref || github.event.pull_request.base.ref || 'master' }}"
         git fetch origin "$BASE" || true
