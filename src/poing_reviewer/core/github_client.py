@@ -308,6 +308,15 @@ class GitHubClient:
         except Exception:
             pass
 
+        # 3. Check git ref / head (branches like @master, @main)
+        branch_url = f"{BASE_URL}/repos/{owner}/{repo}/git/ref/heads/{version}"
+        try:
+            resp = requests.get(branch_url, headers=self._headers(), timeout=10)
+            if resp.status_code == 200:
+                return True
+        except Exception:
+            pass
+
         return False
 
     def extract_and_verify_actions(self, diff_text: str) -> Dict[str, bool]:
