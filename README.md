@@ -40,14 +40,14 @@ Create `.github/workflows/poing-reviewer.yml` in your repository:
 name: "Poing Reviewer"
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, review_requested]
   issues:
     types: [opened]
 
 jobs:
   review:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -102,11 +102,11 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run Dependency Sync
         id: sync
-        uses: poingstudios/poing-reviewer@v1
+        uses: poingstudios/poing-reviewer@master
         with:
           mode: sync
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -131,14 +131,14 @@ jobs:
 
 ## 🛠️ Configuration (`.github/poing.json`)
 
-Configure repository rules in `.github/poing.json`:
+Configure optional repository rules in `.github/poing.json`:
 
 ```json
 {
   "engine": "auto",
   "review": {
-    "model": "gemini-3.5-flash",
-    "fallback_models": ["gemini-3.1-flash-lite", "gemini-3-flash-preview"],
+    "model": "gemini-3.7-flash",
+    "fallback_models": ["gemini-3.6-flash", "gemini-3.5-flash"],
     "max_chars": 100000,
     "max_batches": 5
   },

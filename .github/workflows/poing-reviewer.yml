@@ -33,7 +33,6 @@ jobs:
           mode: review
           github-token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
-          model: gemini-3.7-flash
 
   triage:
     if: github.event_name == 'issues'
@@ -50,4 +49,3 @@ jobs:
           mode: triage
           github-token: ${{ secrets.GITHUB_TOKEN }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
-          model: gemini-3.7-flash
