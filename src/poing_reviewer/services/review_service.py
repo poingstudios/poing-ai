@@ -266,11 +266,12 @@ class ReviewService:
             findings=unique_findings,
             comments=unique_comments,
         )
+        all_reviewed_paths = {p for p, _ in all_valid_lines}
 
         if self.cfg.LOCAL:
             self._display_local_review(final_result)
         else:
-            self._submit_github_review(final_result)
+            self._submit_github_review(final_result, reviewed_paths=all_reviewed_paths)
 
         return final_result
 
@@ -361,7 +362,7 @@ class ReviewService:
             print("✅ No issues found. Clean changes!\n")
         print("=" * 60 + "\n")
 
-    def _submit_github_review(self, result: ReviewResult) -> None:
+    def _submit_github_review(self, result: ReviewResult, reviewed_paths: Optional[Set[str]] = None) -> None:
         if not self.cfg.REPO or not self.cfg.PR_NUMBER:
             logger.error("Cannot submit GitHub review: REPO or PR_NUMBER missing.")
             return
@@ -389,14 +390,18 @@ class ReviewService:
 
             # Auto-resolve fixed threads
             current_fps = {fingerprint(c.path, c.body, c.line) for c in result.comments}
-            reviewed_paths = {c.path for c in result.comments} | {f.file for f in result.findings}
+            paths_to_check = (
+                reviewed_paths
+                if reviewed_paths is not None
+                else ({c.path for c in result.comments} | {f.file for f in result.findings})
+            )
             resolve_fixed_threads(
                 client=self.client,
                 owner=self.cfg.owner,
                 repo_name=self.cfg.repo_name,
                 pr_number=self.cfg.PR_NUMBER,
                 current_fingerprints=current_fps,
-                reviewed_paths=reviewed_paths,
+                reviewed_paths=paths_to_check,
                 bot_login=self.cfg.BOT_LOGIN,
             )
         else:
