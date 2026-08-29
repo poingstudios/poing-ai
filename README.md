@@ -10,6 +10,7 @@
 ## ✨ Features
 
 - 🔍 **Intelligent Code Review**: Analyzes PR diffs with ground-truth full-file context, engine-specific guidelines, live GitHub Action verification, and thumbs-down (`👎`) false positive learning.
+- 🔄 **Thread Auto-Resolution**: Automatically resolves GitHub review comment threads when fixes are pushed to the PR.
 - 🏷️ **Automated Issue & PR Triage**: Classifies incoming issues into labels, assigns priority (`high`, `medium`, `low`), checks duplicates, and ensures repository labels exist.
 - 📦 **Multi-Platform Dependency Sync**: Automatically checks and bumps upstream dependencies (Google Maven, Maven Central, Swift Package Manager, Godot Releases, Unity UPM, NuGet) and writes structured AI release notes.
 - 💻 **Local CLI Mode**: Review local git diffs and test triage/dependencies directly from your terminal without opening a PR.
