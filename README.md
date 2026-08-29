@@ -9,12 +9,16 @@
 
 ## ✨ Features
 
-- 🔍 **Intelligent Code Review**: Analyzes PR diffs with ground-truth full-file context, engine-specific guidelines, live GitHub Action verification, and thumbs-down (`👎`) false positive learning.
-- 🔄 **Thread Auto-Resolution**: Automatically resolves GitHub review comment threads when fixes are pushed to the PR.
+- 🔍 **Intelligent Code Review**: Analyzes PR diffs with ground-truth full-file context (reads entire modified files to verify symbols across the whole file).
+- 🛡️ **Anti-Hallucination & Live Verification**: Queries the live GitHub API in real time to verify GitHub Action versions and suppresses speculative/vague comments.
+- 👎 **Thumbs-Down Learning**: Learns from developer `👎` reactions to permanently eliminate recurring false positives across future runs.
+- 🔄 **Thread Auto-Resolution**: Automatically marks review comment threads as resolved via GraphQL when code fixes are pushed.
+- 🎮 **Game Engine Analyzers**: Built-in guideline checks for **Godot Engine** (e.g. `:=` typing, `class_name` internal rules), **Unity**, and **Unreal Engine**.
 - 🏷️ **Automated Issue & PR Triage**: Classifies incoming issues into labels, assigns priority (`high`, `medium`, `low`), checks duplicates, and ensures repository labels exist.
-- 📦 **Multi-Platform Dependency Sync**: Automatically checks and bumps upstream dependencies (Google Maven, Maven Central, Swift Package Manager, Godot Releases, Unity UPM, NuGet) and writes structured AI release notes.
-- 💻 **Local CLI Mode**: Review local git diffs and test triage/dependencies directly from your terminal without opening a PR.
-- 🧩 **Pluggable & Extensible**: Modular Clean Architecture ready for RAG vector search, local LLMs (Ollama / vLLM), and remote models.
+- 📦 **Multi-Platform Dependency Sync**: Automatically checks and bumps upstream dependencies (Google Maven, Maven Central, Swift Package Manager, Godot Releases, Unity UPM, NuGet) with AI release summaries.
+- 🤖 **Official Bot Identity**: Easily runs as `poing-reviewer[bot]` via GitHub App integration ([Setup Guide](docs/github_app_setup.md)).
+- 💻 **Local CLI Mode**: Review local git diffs, staged changes, and test triage/dependencies directly from your terminal without opening a PR.
+- 🧩 **Pluggable & Extensible**: Modular Clean Architecture ready for Vector RAG search, local LLMs (Ollama / vLLM), OpenAI-compatible APIs, and Google Gemini.
 
 ---
 
@@ -83,7 +87,11 @@ jobs:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 ```
 
-### 2. Dependency Sync Cron Workflow
+*(Optional: Want the bot to post with the official `poing-reviewer[bot]` avatar? Follow the [GitHub App Setup Guide](docs/github_app_setup.md).)*
+
+---
+
+### 3. Dependency Sync Cron Workflow
 
 Create `.github/workflows/cron-sync-dependencies.yml`:
 
@@ -127,6 +135,20 @@ jobs:
           git push -f origin "$BRANCH"
           gh pr create --title "chore(deps): sync upstream dependencies" --body "$BODY" --base master || gh pr edit --body "$BODY"
 ```
+
+---
+
+## ⚙️ Action Inputs Reference
+
+| Input | Description | Required | Default |
+|---|---|---|---|
+| `mode` | Operation mode: `review`, `triage`, or `sync` | No | `review` |
+| `github-token` | GitHub token for PR comments, reviews, or triage labels | No | `${{ github.token }}` |
+| `gemini-api-key` | Google Gemini API Key | No | `""` |
+| `model` | Primary model name to use | No | `gemini-3.7-flash` |
+| `max-chars` | Maximum characters per batch before diff splitting | No | `100000` |
+| `max-batches` | Maximum number of batches to review | No | `5` |
+| `base-ref` | Base git reference branch for diff calculation | No | `master` |
 
 ---
 

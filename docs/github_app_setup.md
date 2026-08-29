@@ -77,14 +77,14 @@ In your `.github/workflows/poing-reviewer.yml`:
 name: "Poing Reviewer"
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, review_requested]
   issues:
     types: [opened]
 
 jobs:
   review:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
     permissions:
       contents: read
