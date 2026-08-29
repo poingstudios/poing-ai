@@ -123,8 +123,14 @@ class GitHubClient:
         return resp
 
     def fetch_review_threads(self, owner: str, repo_name: str, pr_number: str) -> List[Dict[str, Any]]:
-        if not self.token:
+        if not self.token or not pr_number:
             return []
+        try:
+            pr_int = int(str(pr_number).strip())
+        except (ValueError, TypeError):
+            logger.warning(f"Skipping fetch_review_threads: pr_number '{pr_number}' is not a valid integer.")
+            return []
+
         query = """
         query($owner: String!, $repo: String!, $pr: Int!) {
           repository(owner: $owner, name: $repo) {
@@ -157,7 +163,7 @@ class GitHubClient:
             "variables": {
                 "owner": owner,
                 "repo": repo_name,
-                "pr": int(pr_number),
+                "pr": pr_int,
             },
         }
         try:
