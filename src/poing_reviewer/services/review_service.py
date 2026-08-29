@@ -94,7 +94,14 @@ class ReviewService:
             head_sha=self.cfg.HEAD_SHA,
         )
         if not diff.strip():
-            logger.info("No diff detected. Skipping review.")
+            if self.cfg.LOCAL:
+                logger.info("No diff detected. Working tree is clean.")
+            else:
+                logger.warning(
+                    f"No diff detected for PR #{self.cfg.PR_NUMBER or 'unknown'} "
+                    f"between origin/{self.cfg.BASE_REF} and HEAD ({self.cfg.HEAD_SHA[:8] if self.cfg.HEAD_SHA else 'unknown'}). "
+                    "Skipping review."
+                )
             result = ReviewResult(
                 verdict=ReviewVerdict.APPROVED,
                 summary="No changes detected in diff.",
