@@ -30,13 +30,28 @@ class ColoredFormatter(logging.Formatter):
         color = self.COLORS.get(record.levelno, self.RESET)
         level_tag = f"{color}[{record.levelname}]{self.RESET}"
         name_tag = f"\033[90m[{record.name}]\033[0m"
-        
+
         # Color message body for warnings and errors
         msg = record.getMessage()
         if record.levelno >= logging.WARNING:
             msg = f"{color}{msg}{self.RESET}"
-            
-        return f"{level_tag} {name_tag} {msg}"
+
+        formatted = f"{level_tag} {name_tag} {msg}"
+
+        if record.exc_info:
+            if not record.exc_text:
+                record.exc_text = self.formatException(record.exc_info)
+            if record.exc_text:
+                if formatted[-1:] != "\n":
+                    formatted += "\n"
+                formatted += record.exc_text
+
+        if record.stack_info:
+            if formatted[-1:] != "\n":
+                formatted += "\n"
+            formatted += self.formatStack(record.stack_info)
+
+        return formatted
 
 
 def get_logger(name: str = "poing_reviewer") -> logging.Logger:
