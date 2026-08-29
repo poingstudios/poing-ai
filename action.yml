@@ -58,11 +58,14 @@ runs:
       run: pip install -r ${{ github.action_path }}/requirements.txt
       shell: bash
 
-    - name: Fetch Base Branch (Review Mode)
+    - name: Fetch Base Branch & PR Head (Review Mode)
       if: inputs.mode == 'review' && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target')
       run: |
         BASE="${{ inputs.base-ref || github.event.pull_request.base.ref || 'master' }}"
         git fetch origin "$BASE" || true
+        if [ "${{ github.event_name }}" = "pull_request_target" ]; then
+          git fetch origin "pull/${{ github.event.pull_request.number }}/head" || true
+        fi
       shell: bash
 
     - name: Run Poing Reviewer

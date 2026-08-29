@@ -91,6 +91,7 @@ class ReviewService:
             diff_target=self.cfg.DIFF_TARGET,
             files=self.cfg.FILES,
             root_dir=self.root_dir,
+            head_sha=self.cfg.HEAD_SHA,
         )
         if not diff.strip():
             logger.info("No diff detected. Skipping review.")
@@ -174,7 +175,11 @@ class ReviewService:
             logger.info(f"Processing batch {i + 1}/{total_batches} ({len(batch_file_paths)} file(s): {files_preview})...")
 
             file_contents = (
-                load_file_contents_for_diff(batch_file_paths, root_dir=self.root_dir)
+                load_file_contents_for_diff(
+                    batch_file_paths,
+                    root_dir=self.root_dir,
+                    head_sha=self.cfg.HEAD_SHA,
+                )
                 if self.cfg.STRICT_GROUND_TRUTH
                 else None
             )
