@@ -17,6 +17,7 @@ import sys
 from typing import Dict, List, Optional, Set, Tuple
 
 from poing_reviewer.ai.base import BaseAIProvider
+from poing_reviewer.ai.factory import create_ai_provider
 from poing_reviewer.ai.false_positive import (
     add_footer_hint,
     fetch_thumbs_down_fingerprints,
@@ -25,9 +26,8 @@ from poing_reviewer.ai.false_positive import (
     filter_speculative_false_positives,
     is_suppressed,
 )
-from poing_reviewer.ai.gemini import GeminiProvider
 from poing_reviewer.ai.prompts.review import build_review_prompt
-from poing_reviewer.ai.rag.local_rag import LocalFileRetriever
+from poing_reviewer.ai.rag.factory import create_retriever
 from poing_reviewer.ai.thread_resolver import resolve_fixed_threads
 from poing_reviewer.core.config import (
     GITHUB_EVENT_MAP,
@@ -77,31 +77,30 @@ class ReviewService:
     ):
         self.cfg = config
         self.root_dir = root_dir or Path.cwd()
-        self.ai = ai_provider or GeminiProvider(
-            api_key=config.GEMINI_API_KEY,
-            models_to_try=config.MODELS_TO_TRY,
-        )
+        self.ai = ai_provider or create_ai_provider(config)
         self.client = github_client or GitHubClient(token=config.GITHUB_TOKEN)
-        if config.GEMINI_API_KEY:
-            from poing_reviewer.ai.rag.gemini_embedder import GeminiEmbedder
-            from poing_reviewer.ai.rag.vector_rag import VectorRAGRetriever
-            self.retriever = VectorRAGRetriever(
-                embedder=GeminiEmbedder(api_key=config.GEMINI_API_KEY),
-                root_dir=self.root_dir,
-            )
-        else:
-            self.retriever = LocalFileRetriever(root_dir=self.root_dir)
+        self.retriever = create_retriever(config, root_dir=self.root_dir)
 
     def run(self) -> ReviewResult:
-        logger.info(f"Starting review (local={self.cfg.LOCAL})...")
+        logger.info(f"Starting review (local={self.cfg.LOCAL}, provider={self.cfg.PROVIDER})...")
 
-        diff = get_git_diff(self.cfg.BASE_REF, local=self.cfg.LOCAL)
+        diff = get_git_diff(
+            base_ref=self.cfg.BASE_REF,
+            local=self.cfg.LOCAL,
+            staged=self.cfg.STAGED,
+            diff_target=self.cfg.DIFF_TARGET,
+            files=self.cfg.FILES,
+            root_dir=self.root_dir,
+        )
         if not diff.strip():
             logger.info("No diff detected. Skipping review.")
-            return ReviewResult(
+            result = ReviewResult(
                 verdict=ReviewVerdict.APPROVED,
                 summary="No changes detected in diff.",
             )
+            if self.cfg.LOCAL:
+                self._display_local_review(result)
+            return result
 
         if not self.cfg.LOCAL and self.cfg.GITHUB_TOKEN and not self.cfg.BOT_LOGIN:
             self.cfg.BOT_LOGIN = self.client.fetch_bot_login()
@@ -159,6 +158,7 @@ class ReviewService:
         file_blocks = split_diff_by_file(diff)
         batches = split_batches(file_blocks, self.cfg.MAX_CHARS)[:self.cfg.MAX_BATCHES]
         total_batches = len(batches)
+        logger.info(f"Diff analyzed: {len(file_blocks)} file(s), {len(diff)} chars. Split into {total_batches} review batch(es).")
 
         all_results: List[ReviewResult] = []
         all_valid_lines: Set[Tuple[str, int]] = set()
@@ -170,6 +170,9 @@ class ReviewService:
             all_valid_lines.update(valid_lines)
 
             batch_file_paths = {p for p, _ in valid_lines}
+            files_preview = ", ".join(sorted(batch_file_paths)[:4]) + ("..." if len(batch_file_paths) > 4 else "")
+            logger.info(f"Processing batch {i + 1}/{total_batches} ({len(batch_file_paths)} file(s): {files_preview})...")
+
             file_contents = (
                 load_file_contents_for_diff(batch_file_paths, root_dir=self.root_dir)
                 if self.cfg.STRICT_GROUND_TRUTH
@@ -188,6 +191,7 @@ class ReviewService:
 
             result = self.ai.generate_review(prompt)
             if result:
+                logger.info(f"Batch {i + 1}/{total_batches} analyzed: verdict={result.verdict.value}, {len(result.findings)} finding(s), {len(result.comments)} inline comment(s).")
                 all_results.append(result)
 
         if not all_results:
@@ -204,6 +208,7 @@ class ReviewService:
         final_verdict = pick_verdict(verdicts)
         summaries = [r.summary for r in all_results if r.summary]
         final_summary = " ".join(summaries)
+        logger.info(f"Review aggregated: overall verdict={final_verdict.value}.")
 
         # Deduplicate Findings & Comments
         seen_findings: Set[str] = set()
@@ -259,7 +264,13 @@ class ReviewService:
 
     def _build_review_body(self, result: ReviewResult) -> str:
         short_sha = self.cfg.HEAD_SHA[:10] if self.cfg.HEAD_SHA else ""
-        sha_line = f"**Reviewed commit:** `{short_sha}`\n" if short_sha else ""
+        if short_sha and self.cfg.REPO:
+            commit_url = f"https://github.com/{self.cfg.REPO}/commit/{self.cfg.HEAD_SHA}"
+            sha_line = f"**Reviewed commit:** [`{short_sha}`]({commit_url})\n"
+        elif short_sha:
+            sha_line = f"**Reviewed commit:** `{short_sha}`\n"
+        else:
+            sha_line = ""
 
         body_parts = [
             "### 💡 Poing Reviewer\n",
@@ -297,13 +308,51 @@ class ReviewService:
         return "\n".join(body_parts)
 
     def _display_local_review(self, result: ReviewResult) -> None:
+        fmt = (self.cfg.OUTPUT_FORMAT or "terminal").lower()
+
+        if fmt == "json":
+            import json
+            print(json.dumps(result.to_dict(), indent=2))
+            return
+
+        if fmt == "markdown":
+            body = self._build_review_body(result)
+            print(body)
+            if result.comments:
+                print("\n### Inline Comments\n")
+                for c in result.comments:
+                    print(f"- **`{c.path}` L{c.line}**: {c.body}")
+            return
+
+        # Default: Terminal formatted display
         body = self._build_review_body(result)
+        verdict_color = {
+            ReviewVerdict.APPROVED: "\033[92m",
+            ReviewVerdict.APPROVED_WITH_SUGGESTIONS: "\033[93m",
+            ReviewVerdict.CHANGES_REQUESTED: "\033[91m",
+        }.get(result.verdict, "\033[0m")
+        reset_color = "\033[0m"
+
         print("\n" + "=" * 60)
-        print(body)
+        print(f"{verdict_color}POING REVIEWER — {result.verdict.value}{reset_color}")
+        print("=" * 60)
+        if result.summary:
+            print(f"\n{result.summary}\n")
+
+        if result.findings:
+            print("Findings:")
+            for f in result.findings:
+                print(f"  {f.severity} [{f.file}] {f.finding}")
+            print()
+
         if result.comments:
-            print("### Inline Comments:")
+            print("Inline Suggestions:")
             for c in result.comments:
-                print(f"- `{c.path}` L{c.line}: {c.body}")
+                print(f"  ➜ {c.path}:{c.line}")
+                print(f"    {c.body}\n")
+
+        if not result.findings and not result.comments:
+            print("✅ No issues found. Clean changes!\n")
         print("=" * 60 + "\n")
 
     def _submit_github_review(self, result: ReviewResult) -> None:

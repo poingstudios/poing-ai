@@ -48,9 +48,58 @@ def create_parser() -> argparse.ArgumentParser:
         help="Run without modifying files or submitting reviews/labels to GitHub",
     )
     parser.add_argument(
+        "-p",
+        "--provider",
+        choices=["auto", "gemini", "ollama", "openai", "openai-compatible", "deepseek", "groq", "openrouter"],
+        default=None,
+        help="AI provider backend (gemini, ollama, openai, deepseek, or auto)",
+    )
+    parser.add_argument(
+        "-m",
         "--model",
         default=None,
-        help="Primary AI model name (e.g. gemini-3.5-flash)",
+        help="Primary AI model name (e.g. gemini-3.7-flash, deepseek-r1:latest, gpt-4o-mini)",
+    )
+    parser.add_argument(
+        "--api-base",
+        "--base-url",
+        dest="api_base",
+        default=None,
+        help="Custom API base URL (e.g. http://localhost:11434 for Ollama, https://api.deepseek.com/v1)",
+    )
+    parser.add_argument(
+        "--api-key",
+        default=None,
+        help="API Key for remote AI providers (Gemini, OpenAI, DeepSeek)",
+    )
+    parser.add_argument(
+        "--staged",
+        action="store_true",
+        help="Review only staged git changes (git diff --cached)",
+    )
+    parser.add_argument(
+        "--diff-target",
+        default=None,
+        help="Custom git diff range/commit to review (e.g. HEAD~1, master...HEAD)",
+    )
+    parser.add_argument(
+        "-f",
+        "--files",
+        nargs="+",
+        default=None,
+        help="Review specific file path(s)",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        choices=["terminal", "json", "markdown"],
+        default=None,
+        help="Local review output format (default: terminal)",
+    )
+    parser.add_argument(
+        "--fail-on-changes",
+        action="store_true",
+        help="Exit with code 1 if review verdict is CHANGES_REQUESTED (useful for pre-commit hooks)",
     )
     parser.add_argument(
         "--repo",
@@ -107,6 +156,9 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     cfg = Config(
         mode=args.mode,
+        provider=args.provider,
+        api_base=args.api_base,
+        api_key=args.api_key,
         model_name=args.model,
         repo=args.repo,
         pr_number=args.pr_number,
@@ -119,10 +171,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         issue_action=args.issue_action,
         local=args.local,
         dry_run=args.dry_run,
+        staged=args.staged,
+        diff_target=args.diff_target,
+        files=args.files,
+        output_format=args.output,
+        fail_on_changes=args.fail_on_changes,
     )
 
     mode = cfg.MODE
-    logger.info(f"Running Poing Reviewer in '{mode}' mode (local={cfg.LOCAL}, dry_run={cfg.DRY_RUN})...")
+    logger.info(f"Running Poing Reviewer in '{mode}' mode (local={cfg.LOCAL}, provider={cfg.PROVIDER}, dry_run={cfg.DRY_RUN})...")
 
     if mode == "triage":
         service = TriageService(cfg)
@@ -149,7 +206,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     # Default: mode == "review"
     service = ReviewService(cfg)
     review_result = service.run()
-    return 0 if review_result is not None else 1
+    if review_result is None:
+        return 1
+
+    if cfg.LOCAL and cfg.FAIL_ON_CHANGES and review_result.verdict.value == "CHANGES_REQUESTED":
+        return 1
+
+    return 0
 
 
 if __name__ == "__main__":

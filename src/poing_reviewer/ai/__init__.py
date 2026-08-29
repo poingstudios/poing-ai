@@ -13,6 +13,15 @@
 # limitations under the License.
 
 from poing_reviewer.ai.base import BaseAIProvider
+from poing_reviewer.ai.factory import create_ai_provider
 from poing_reviewer.ai.gemini import GeminiProvider
+from poing_reviewer.ai.ollama import OllamaProvider
+from poing_reviewer.ai.openai_compatible import OpenAICompatibleProvider
 
-__all__ = ["BaseAIProvider", "GeminiProvider"]
+__all__ = [
+    "BaseAIProvider",
+    "GeminiProvider",
+    "OllamaProvider",
+    "OpenAICompatibleProvider",
+    "create_ai_provider",
+]

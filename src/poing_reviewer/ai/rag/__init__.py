@@ -13,8 +13,11 @@
 # limitations under the License.
 
 from poing_reviewer.ai.rag.base import BaseEmbedder, BaseRetriever, RetrievedDocument
+from poing_reviewer.ai.rag.factory import create_retriever
 from poing_reviewer.ai.rag.gemini_embedder import GeminiEmbedder
 from poing_reviewer.ai.rag.local_rag import LocalFileRetriever
+from poing_reviewer.ai.rag.ollama_embedder import OllamaEmbedder
+from poing_reviewer.ai.rag.openai_embedder import OpenAIEmbedder
 from poing_reviewer.ai.rag.vector_rag import VectorRAGRetriever
 
 __all__ = [
@@ -23,5 +26,8 @@ __all__ = [
     "RetrievedDocument",
     "GeminiEmbedder",
     "LocalFileRetriever",
+    "OllamaEmbedder",
+    "OpenAIEmbedder",
     "VectorRAGRetriever",
+    "create_retriever",
 ]

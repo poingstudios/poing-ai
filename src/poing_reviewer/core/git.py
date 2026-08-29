@@ -50,27 +50,58 @@ def load_file_contents_for_diff(
     return file_contents
 
 
-def get_git_diff(base_ref: str = "master", local: bool = False) -> str:
+def _run_git_diff_cmd(cmd: List[str], cwd: Optional[str] = None) -> str:
     try:
-        if local:
-            # Check uncommitted diff first, fallback to diff against base_ref or HEAD~1
-            diff = subprocess.check_output(["git", "diff", "HEAD"]).decode("utf-8")
-            if not diff.strip():
-                diff = subprocess.check_output(["git", "diff", f"{base_ref}...HEAD"]).decode("utf-8")
-            return diff
+        proc = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=cwd,
+            text=True,
+        )
+        if proc.returncode == 0:
+            return proc.stdout
+    except Exception:
+        pass
+    return ""
 
-        try:
-            return subprocess.check_output(
-                ["git", "diff", f"origin/{base_ref}...HEAD"]
-            ).decode("utf-8")
-        except subprocess.CalledProcessError:
-            # Fallback if origin/base_ref is not fetched
-            return subprocess.check_output(
-                ["git", "diff", f"{base_ref}...HEAD"]
-            ).decode("utf-8")
-    except Exception as e:
-        print(f"Failed to get git diff: {e}", file=sys.stderr)
-        return ""
+
+def get_git_diff(
+    base_ref: str = "master",
+    local: bool = False,
+    staged: bool = False,
+    diff_target: Optional[str] = None,
+    files: Optional[List[str]] = None,
+    root_dir: Optional[Path] = None,
+) -> str:
+    cwd = str(root_dir) if root_dir else None
+    file_args = ["--"] + files if files else []
+
+    if diff_target:
+        return _run_git_diff_cmd(["git", "diff", diff_target] + file_args, cwd=cwd)
+
+    if staged:
+        return _run_git_diff_cmd(["git", "diff", "--cached"] + file_args, cwd=cwd)
+
+    if files:
+        diff = _run_git_diff_cmd(["git", "diff", "HEAD"] + file_args, cwd=cwd)
+        if not diff.strip():
+            diff = _run_git_diff_cmd(["git", "diff", f"{base_ref}...HEAD"] + file_args, cwd=cwd)
+        return diff
+
+    if local:
+        # Check combined staged + unstaged changes first
+        diff = _run_git_diff_cmd(["git", "diff", "HEAD"], cwd=cwd)
+        if not diff.strip():
+            diff = _run_git_diff_cmd(["git", "diff", f"{base_ref}...HEAD"], cwd=cwd)
+        if not diff.strip():
+            diff = _run_git_diff_cmd(["git", "diff", base_ref], cwd=cwd)
+        return diff
+
+    diff = _run_git_diff_cmd(["git", "diff", f"origin/{base_ref}...HEAD"] + file_args, cwd=cwd)
+    if not diff.strip():
+        diff = _run_git_diff_cmd(["git", "diff", f"{base_ref}...HEAD"] + file_args, cwd=cwd)
+    return diff
 
 
 def annotate_diff(diff_text: str) -> Tuple[str, Set[Tuple[str, int]]]:

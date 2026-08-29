@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from typing import Any, Dict, List, Optional
 import requests
 
@@ -20,12 +21,11 @@ from poing_reviewer.core.logging import get_logger
 
 logger = get_logger("ai.rag.gemini_embedder")
 
-EMBEDDING_API_VERSIONS = ["v1", "v1beta"]
+EMBEDDING_API_VERSIONS = ["v1beta"]
 
 FALLBACK_EMBEDDING_MODELS = [
-    "text-embedding-004",
-    "gemini-embedding-exp-03-07",
-    "embedding-001",
+    "gemini-embedding-2-preview",
+    "gemini-embedding-001",
 ]
 
 
@@ -35,7 +35,7 @@ class GeminiEmbedder(BaseEmbedder):
     def __init__(
         self,
         api_key: str,
-        primary_model: str = "text-embedding-004",
+        primary_model: str = "gemini-embedding-2-preview",
         fallback_models: Optional[List[str]] = None,
     ):
         self.api_key = api_key
@@ -51,7 +51,6 @@ class GeminiEmbedder(BaseEmbedder):
             for model in self.models_to_try:
                 url = f"https://generativelanguage.googleapis.com/{api_ver}/models/{model}:embedContent?key={self.api_key}"
                 payload: Dict[str, Any] = {
-                    "model": f"models/{model}",
                     "content": {
                         "parts": [{"text": text[:8000]}]
                     },
@@ -67,7 +66,6 @@ class GeminiEmbedder(BaseEmbedder):
                                 return embedding
 
                         if resp.status_code in (429, 503) and attempt < 2:
-                            import time
                             time.sleep(2 ** attempt * 2)
                             continue
 
@@ -76,7 +74,6 @@ class GeminiEmbedder(BaseEmbedder):
                     except Exception as e:
                         logger.warning(f"Embedding request failed for {model}: {e}")
                         if attempt < 2:
-                            import time
                             time.sleep(2 ** attempt * 2)
                             continue
                         break
