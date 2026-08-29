@@ -5,10 +5,25 @@ on:
     types: [opened, synchronize, review_requested]
   issues:
     types: [opened]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Mode: review or triage'
+        required: true
+        default: 'review'
+        type: choice
+        options:
+          - review
+          - triage
+      number:
+        description: 'PR or Issue number'
+        required: true
 
 jobs:
   review:
-    if: github.event_name == 'pull_request_target'
+    if: >
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'review')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -18,7 +33,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.APP_ID }}
+          client-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
         continue-on-error: true
 
@@ -26,6 +41,12 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      - name: Checkout PR (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: gh pr checkout ${{ inputs.number }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: 3. Run Reviewer (Self-Dogfooding)
         uses: ./
@@ -35,17 +56,27 @@ jobs:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 
   triage:
-    if: github.event_name == 'issues'
+    if: >
+      github.event_name == 'issues' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'triage')
     runs-on: ubuntu-latest
     permissions:
       issues: write
     steps:
-      - name: 1. Checkout Code
+      - name: 1. Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+        continue-on-error: true
+
+      - name: 2. Checkout Code
         uses: actions/checkout@v7
 
-      - name: 2. Run Triage (Self-Dogfooding)
+      - name: 3. Run Triage (Self-Dogfooding)
         uses: ./
         with:
           mode: triage
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}

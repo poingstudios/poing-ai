@@ -9,11 +9,15 @@
 
 ## ✨ Features
 
-- 🔍 **Intelligent Code Review**: Analyzes PR diffs with ground-truth full-file context, engine-specific guidelines, live GitHub Action verification, and thumbs-down (`👎`) false positive learning.
+- 🔍 **Intelligent Code Review**: Analyzes PR diffs with ground-truth full-file context (reads entire modified files to verify symbols across the whole file).
+- 🛡️ **Anti-Hallucination & Live Verification**: Queries the live GitHub API in real time to verify GitHub Action versions and suppresses speculative/vague comments.
+- 👎 **Thumbs-Down Learning**: Learns from developer `👎` reactions to permanently eliminate recurring false positives across future runs.
+- 🔄 **Thread Auto-Resolution**: Automatically marks review comment threads as resolved via GraphQL when code fixes are pushed.
+- 🎮 **Game Engine Analyzers**: Built-in guideline checks for **Godot Engine** (e.g. `:=` typing, `class_name` internal rules), **Unity**, and **Unreal Engine**.
 - 🏷️ **Automated Issue & PR Triage**: Classifies incoming issues into labels, assigns priority (`high`, `medium`, `low`), checks duplicates, and ensures repository labels exist.
-- 📦 **Multi-Platform Dependency Sync**: Automatically checks and bumps upstream dependencies (Google Maven, Maven Central, Swift Package Manager, Godot Releases, Unity UPM, NuGet) and writes structured AI release notes.
-- 💻 **Local CLI Mode**: Review local git diffs and test triage/dependencies directly from your terminal without opening a PR.
-- 🧩 **Pluggable & Extensible**: Modular Clean Architecture ready for RAG vector search, local LLMs (Ollama / vLLM), and remote models.
+- 📦 **Multi-Platform Dependency Sync**: Automatically checks and bumps upstream dependencies (Google Maven, Maven Central, Swift Package Manager, Godot Releases, Unity UPM, NuGet) with AI release summaries.
+- 💻 **Local CLI Mode**: Review local git diffs, staged changes, and test triage/dependencies directly from your terminal without opening a PR.
+- 🧩 **Pluggable & Extensible**: Modular Clean Architecture ready for Vector RAG search, local LLMs (Ollama / vLLM), OpenAI-compatible APIs, and Google Gemini.
 
 ---
 
@@ -44,10 +48,25 @@ on:
     types: [opened, synchronize, review_requested]
   issues:
     types: [opened]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Mode: review or triage'
+        required: true
+        default: 'review'
+        type: choice
+        options:
+          - review
+          - triage
+      number:
+        description: 'PR or Issue number'
+        required: true
 
 jobs:
   review:
-    if: github.event_name == 'pull_request_target'
+    if: >
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'review')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,6 +77,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout PR (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: gh pr checkout ${{ inputs.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run Reviewer
         uses: poingstudios/poing-reviewer@master
         with:
@@ -66,7 +91,9 @@ jobs:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 
   triage:
-    if: github.event_name == 'issues'
+    if: >
+      github.event_name == 'issues' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'triage')
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -82,7 +109,9 @@ jobs:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 ```
 
-### 2. Dependency Sync Cron Workflow
+---
+
+### 3. Dependency Sync Cron Workflow
 
 Create `.github/workflows/cron-sync-dependencies.yml`:
 
@@ -119,13 +148,27 @@ jobs:
           BODY: ${{ steps.sync.outputs.pr_body }}
         run: |
           BRANCH="deps/sync-dependencies"
-          git config user.name "poing-reviewer[bot]"
-          git config user.email "296332247+poing-reviewer[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -B "$BRANCH"
           git commit -am "chore(deps): synchronize upstream dependencies"
           git push -f origin "$BRANCH"
           gh pr create --title "chore(deps): sync upstream dependencies" --body "$BODY" --base master || gh pr edit --body "$BODY"
 ```
+
+---
+
+## ⚙️ Action Inputs Reference
+
+| Input | Description | Required | Default |
+|---|---|---|---|
+| `mode` | Operation mode: `review`, `triage`, or `sync` | No | `review` |
+| `github-token` | GitHub token for PR comments, reviews, or triage labels | No | `${{ github.token }}` |
+| `gemini-api-key` | Google Gemini API Key | No | `""` |
+| `model` | Primary model name to use | No | `gemini-3.7-flash` |
+| `max-chars` | Maximum characters per batch before diff splitting | No | `100000` |
+| `max-batches` | Maximum number of batches to review | No | `5` |
+| `base-ref` | Base git reference branch for diff calculation | No | `master` |
 
 ---
 

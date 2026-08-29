@@ -30,23 +30,43 @@ MAX_FILE_SIZE_BYTES = 100 * 1024
 
 def load_file_contents_for_diff(
     file_paths: Iterable[str],
-    root_dir: Optional[Path] = None
+    root_dir: Optional[Path] = None,
+    head_sha: Optional[str] = None,
 ) -> Dict[str, str]:
     base = root_dir or Path.cwd()
     file_contents: Dict[str, str] = {}
     for rel_path in file_paths:
         if any(rel_path.endswith(ext) for ext in IGNORED_EXTENSIONS):
             continue
-        full_path = base / rel_path
-        if not full_path.exists() or full_path.is_dir():
-            continue
-        try:
-            if full_path.stat().st_size > MAX_FILE_SIZE_BYTES:
-                continue
-            with open(full_path, "r", encoding="utf-8", errors="replace") as f:
-                file_contents[rel_path] = f.read()
-        except Exception as e:
-            print(f"Warning: Could not read file content for {rel_path}: {e}", file=sys.stderr)
+
+        content = ""
+        if head_sha:
+            try:
+                proc = subprocess.run(
+                    ["git", "show", f"{head_sha}:{rel_path}"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    cwd=str(base),
+                    text=True,
+                )
+                if proc.returncode == 0:
+                    content = proc.stdout
+            except Exception:
+                pass
+
+        if not content:
+            full_path = base / rel_path
+            if full_path.exists() and not full_path.is_dir():
+                try:
+                    if full_path.stat().st_size <= MAX_FILE_SIZE_BYTES:
+                        with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+                            content = f.read()
+                except Exception as e:
+                    print(f"Warning: Could not read file content for {rel_path}: {e}", file=sys.stderr)
+
+        if content and len(content.encode("utf-8")) <= MAX_FILE_SIZE_BYTES:
+            file_contents[rel_path] = content
+
     return file_contents
 
 
@@ -73,6 +93,7 @@ def get_git_diff(
     diff_target: Optional[str] = None,
     files: Optional[List[str]] = None,
     root_dir: Optional[Path] = None,
+    head_sha: Optional[str] = None,
 ) -> str:
     cwd = str(root_dir) if root_dir else None
     file_args = ["--"] + files if files else []
@@ -85,6 +106,8 @@ def get_git_diff(
 
     if files:
         diff = _run_git_diff_cmd(["git", "diff", "HEAD"] + file_args, cwd=cwd)
+        if not diff.strip() and head_sha:
+            diff = _run_git_diff_cmd(["git", "diff", f"origin/{base_ref}...{head_sha}"] + file_args, cwd=cwd)
         if not diff.strip():
             diff = _run_git_diff_cmd(["git", "diff", f"{base_ref}...HEAD"] + file_args, cwd=cwd)
         return diff
@@ -98,9 +121,22 @@ def get_git_diff(
             diff = _run_git_diff_cmd(["git", "diff", base_ref], cwd=cwd)
         return diff
 
-    diff = _run_git_diff_cmd(["git", "diff", f"origin/{base_ref}...HEAD"] + file_args, cwd=cwd)
+    # CI Mode (pull_request or pull_request_target)
+    diff = ""
+    if head_sha:
+        diff = _run_git_diff_cmd(["git", "diff", f"origin/{base_ref}...{head_sha}"] + file_args, cwd=cwd)
+        if not diff.strip():
+            diff = _run_git_diff_cmd(["git", "diff", f"{base_ref}...{head_sha}"] + file_args, cwd=cwd)
+
+    if not diff.strip():
+        diff = _run_git_diff_cmd(["git", "diff", f"origin/{base_ref}...HEAD"] + file_args, cwd=cwd)
+
     if not diff.strip():
         diff = _run_git_diff_cmd(["git", "diff", f"{base_ref}...HEAD"] + file_args, cwd=cwd)
+
+    if not diff.strip():
+        diff = _run_git_diff_cmd(["git", "diff", f"origin/{base_ref}...FETCH_HEAD"] + file_args, cwd=cwd)
+
     return diff
 
 
