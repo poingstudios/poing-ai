@@ -266,11 +266,12 @@ class ReviewService:
             findings=unique_findings,
             comments=unique_comments,
         )
+        all_reviewed_paths = {p for p, _ in all_valid_lines}
 
         if self.cfg.LOCAL:
             self._display_local_review(final_result)
         else:
-            self._submit_github_review(final_result)
+            self._submit_github_review(final_result, reviewed_paths=all_reviewed_paths)
 
         return final_result
 
@@ -278,43 +279,37 @@ class ReviewService:
         short_sha = self.cfg.HEAD_SHA[:10] if self.cfg.HEAD_SHA else ""
         if short_sha and self.cfg.REPO:
             commit_url = f"https://github.com/{self.cfg.REPO}/commit/{self.cfg.HEAD_SHA}"
-            sha_line = f"**Reviewed commit:** [`{short_sha}`]({commit_url})\n"
+            sha_line = f"**Commit:** [`{short_sha}`]({commit_url})\n"
         elif short_sha:
-            sha_line = f"**Reviewed commit:** `{short_sha}`\n"
+            sha_line = f"**Commit:** `{short_sha}`\n"
         else:
             sha_line = ""
 
-        body_parts = [
-            "### 💡 Poing Reviewer\n",
-            "Here are the automated review suggestions for this pull request.\n",
-        ]
+        verdict_label = VERDICT_MAP.get(result.verdict.value, str(result.verdict))
+
+        body_parts = [f"## 🤖 Poing Reviewer\n"]
+
         if sha_line:
             body_parts.append(sha_line)
 
-        body_parts.append(f"**Verdict:** {VERDICT_MAP.get(result.verdict.value, str(result.verdict))}\n")
+        body_parts.append(f"{verdict_label}\n")
 
         if result.summary:
             body_parts.append(f"{result.summary}\n")
 
         if result.findings:
-            body_parts.append("#### Findings\n")
+            body_parts.append("### Findings\n")
             body_parts.append("| Severity | File | Finding |")
             body_parts.append("|---|---|---|")
             for f in result.findings:
                 clean_finding = f.finding.replace("\n", " ").replace("|", "\\|")
                 body_parts.append(f"| {f.severity} | `{f.file}` | {clean_finding} |")
             body_parts.append("")
-        else:
-            body_parts.append("✅ No issues found. Clean changes!\n")
 
         body_parts.append(
-            "<details>\n"
-            "<summary>ℹ️ <b>About Poing Reviewer</b></summary>\n<br>\n\n"
-            "**[Poing Reviewer](https://github.com/poingstudios/poing-reviewer)** provides automated code reviews and guidelines verification for Godot, Unity, Unreal, and multi-platform repositories.\n\n"
-            "- 🎮 **Engine-Aware**: Enforces engine-specific conventions, memory management, and typing rules.\n"
-            "- 🛡️ **Ground Truth**: Validates imports and references against full source files to eliminate hallucinations.\n"
-            "- 👎 **Learning Feedback**: React with 👎 to any comment to suppress false positives on future commits.\n"
-            "</details>"
+            "\n---\n"
+            "<sub>Reviewed by [Poing Reviewer](https://github.com/poingstudios/poing-reviewer) · "
+            "React with 👎 to suppress false positives</sub>"
         )
 
         return "\n".join(body_parts)
@@ -367,7 +362,7 @@ class ReviewService:
             print("✅ No issues found. Clean changes!\n")
         print("=" * 60 + "\n")
 
-    def _submit_github_review(self, result: ReviewResult) -> None:
+    def _submit_github_review(self, result: ReviewResult, reviewed_paths: Optional[Set[str]] = None) -> None:
         if not self.cfg.REPO or not self.cfg.PR_NUMBER:
             logger.error("Cannot submit GitHub review: REPO or PR_NUMBER missing.")
             return
@@ -395,14 +390,18 @@ class ReviewService:
 
             # Auto-resolve fixed threads
             current_fps = {fingerprint(c.path, c.body, c.line) for c in result.comments}
-            reviewed_paths = {c.path for c in result.comments} | {f.file for f in result.findings}
+            paths_to_check = (
+                reviewed_paths
+                if reviewed_paths is not None
+                else ({c.path for c in result.comments} | {f.file for f in result.findings})
+            )
             resolve_fixed_threads(
                 client=self.client,
                 owner=self.cfg.owner,
                 repo_name=self.cfg.repo_name,
                 pr_number=self.cfg.PR_NUMBER,
                 current_fingerprints=current_fps,
-                reviewed_paths=reviewed_paths,
+                reviewed_paths=paths_to_check,
                 bot_login=self.cfg.BOT_LOGIN,
             )
         else:

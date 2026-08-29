@@ -45,7 +45,10 @@ class GitHubClient:
         return headers
 
     def _graphql_headers(self) -> Dict[str, str]:
-        headers = {}
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "PoingReviewer/1.0",
+        }
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         return headers

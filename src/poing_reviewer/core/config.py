@@ -70,12 +70,12 @@ FP_KEYWORDS = [
 
 COMMENT_FOOTER_HINT = (
     "\n\n---\n"
-    "> 👍 helpful · 👎 false positive"
+    "<sub>👍 helpful · 👎 false positive</sub>"
 )
 
 TRIAGE_FOOTER = (
     "\n\n---\n"
-    "*🤖 This issue has been automatically triaged by Poing Reviewer.*"
+    "<sub>🤖 Triaged by [Poing Reviewer](https://github.com/poingstudios/poing-reviewer)</sub>"
 )
 
 AVAILABLE_LABELS = [

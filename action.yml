@@ -34,6 +34,10 @@ inputs:
     description: 'Base git reference branch for diff'
     required: false
     default: ''
+  number:
+    description: 'PR or Issue number (for manual workflow_dispatch)'
+    required: false
+    default: ''
 
 outputs:
   has_updates:
@@ -79,11 +83,11 @@ runs:
         MAX_CHARS: ${{ inputs.max-chars }}
         MAX_BATCHES: ${{ inputs.max-batches }}
         REPO: ${{ github.repository }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_NUMBER: ${{ inputs.number || github.event.pull_request.number }}
         BASE_REF: ${{ inputs.base-ref || github.event.pull_request.base.ref || 'master' }}
         PR_TITLE: ${{ github.event.pull_request.title }}
         PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+        ISSUE_NUMBER: ${{ inputs.number || github.event.issue.number || github.event.pull_request.number }}
         ISSUE_TITLE: ${{ github.event.issue.title || github.event.pull_request.title }}
         ISSUE_BODY: ${{ github.event.issue.body || github.event.pull_request.body }}
         ISSUE_ACTION: ${{ github.event.action }}
