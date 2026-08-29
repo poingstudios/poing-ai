@@ -31,6 +31,7 @@ from poing_reviewer.ai.rag.factory import create_retriever
 from poing_reviewer.ai.thread_resolver import resolve_fixed_threads
 from poing_reviewer.core.config import (
     GITHUB_EVENT_MAP,
+    REVIEW_FOOTER,
     VERDICT_MAP,
     VERDICT_PRIORITY,
     Config,
@@ -306,11 +307,7 @@ class ReviewService:
                 body_parts.append(f"| {f.severity} | `{f.file}` | {clean_finding} |")
             body_parts.append("")
 
-        body_parts.append(
-            "\n---\n"
-            "<sub>Reviewed by [Poing Reviewer](https://github.com/poingstudios/poing-reviewer) · "
-            "React with 👎 to suppress false positives</sub>"
-        )
+        body_parts.append(REVIEW_FOOTER)
 
         return "\n".join(body_parts)
 
