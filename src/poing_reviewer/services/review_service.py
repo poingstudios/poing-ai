@@ -117,6 +117,11 @@ class ReviewService:
                 self._display_local_review(result)
             return result
 
+        if not self.cfg.LOCAL and self.cfg.REPO and self.cfg.PR_NUMBER:
+            resolved_pr = self.client.resolve_pr_number(self.cfg.owner, self.cfg.repo_name, self.cfg.PR_NUMBER)
+            if resolved_pr:
+                self.cfg.PR_NUMBER = resolved_pr
+
         if not self.cfg.LOCAL and self.cfg.GITHUB_TOKEN and not self.cfg.BOT_LOGIN:
             self.cfg.BOT_LOGIN = self.client.fetch_bot_login()
 

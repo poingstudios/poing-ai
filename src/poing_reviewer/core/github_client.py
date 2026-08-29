@@ -47,6 +47,33 @@ class GitHubClient:
             headers["Authorization"] = f"Bearer {self.token}"
         return headers
 
+    def resolve_pr_number(self, owner: str, repo_name: str, identifier: str) -> Optional[str]:
+        if not identifier:
+            return None
+        clean_id = str(identifier).strip().lstrip("#")
+        if clean_id.isdigit():
+            return clean_id
+
+        if not self.token or not owner or not repo_name:
+            return None
+
+        try:
+            resp = requests.get(
+                f"{BASE_URL}/repos/{owner}/{repo_name}/pulls",
+                headers=self._headers(),
+                params={"head": f"{owner}:{identifier}", "state": "open"},
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                prs = resp.json()
+                if prs and isinstance(prs, list) and len(prs) > 0:
+                    resolved = str(prs[0].get("number"))
+                    logger.info(f"Resolved branch '{identifier}' to PR #{resolved}")
+                    return resolved
+        except Exception as e:
+            logger.debug(f"Failed to resolve PR from branch '{identifier}': {e}")
+        return None
+
     def fetch_bot_login(self) -> str:
         if not self.token:
             return ""
