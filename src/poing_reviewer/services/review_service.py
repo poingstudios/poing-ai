@@ -68,6 +68,12 @@ def pick_verdict(verdicts: List[ReviewVerdict]) -> ReviewVerdict:
     return best
 
 
+def _sanitize_markdown_text(text: str) -> str:
+    """Wraps raw unbackticked HTML tags in backticks to prevent unintended Markdown rendering."""
+    import re
+    return re.sub(r"(?<!`)(</?[a-zA-Z][a-zA-Z0-9_-]*(?:\s+[^>]*)?>)(?!`)", r"`\1`", text)
+
+
 class ReviewService:
     def __init__(
         self,
@@ -296,14 +302,14 @@ class ReviewService:
         body_parts.append(f"{verdict_label}\n")
 
         if result.summary:
-            body_parts.append(f"{result.summary}\n")
+            body_parts.append(f"{_sanitize_markdown_text(result.summary)}\n")
 
         if result.findings:
             body_parts.append("### Findings\n")
             body_parts.append("| Severity | File | Finding |")
             body_parts.append("|---|---|---|")
             for f in result.findings:
-                clean_finding = f.finding.replace("\n", " ").replace("|", "\\|")
+                clean_finding = _sanitize_markdown_text(f.finding).replace("\n", " ").replace("|", "\\|")
                 body_parts.append(f"| {f.severity} | `{f.file}` | {clean_finding} |")
             body_parts.append("")
 
