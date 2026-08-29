@@ -78,6 +78,14 @@ TRIAGE_FOOTER = (
     "<sub>🤖 Triaged by [Poing Reviewer](https://github.com/poingstudios/poing-reviewer)</sub>"
 )
 
+REVIEW_FOOTER = (
+    "\n\n---\n"
+    "<details>\n"
+    "<summary>ℹ️ <b>About Poing Reviewer</b></summary>\n<br>\n\n"
+    "[Poing Reviewer](https://github.com/poingstudios/poing-reviewer) is an open-source AI code reviewer and guidelines verifier for Godot, Unity, Unreal, and multi-platform repositories.\n"
+    "</details>"
+)
+
 AVAILABLE_LABELS = [
     "bug",
     "enhancement",

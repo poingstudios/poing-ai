@@ -77,6 +77,7 @@ PR Title: {pr_title}
 3. **NO NITPICKS**: Do NOT comment on personal style preferences, trivial formatting, or comments.
 4. **EMPTY IS FINE**: If the changes are clean and correct, return `{{"verdict": "APPROVED", "summary": "...", "findings": [], "comments": []}}`. Do NOT invent issues.
 5. **EXACT LINE MATCHING**: Inline comments must specify the exact line number from the `Annotated Diff` prefixed with `[<file> L<number>]`.
+6. **BACKTICK CODE & HTML TAGS**: Always enclose all HTML tags (e.g. `<details>`, `<summary>`, `<div>`), function names, types, and code symbols in backticks to prevent raw HTML rendering issues in Markdown.
 
 ## Output format
 

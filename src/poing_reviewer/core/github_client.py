@@ -25,12 +25,6 @@ logger = get_logger("github_client")
 BASE_URL = "https://api.github.com"
 GRAPHQL_URL = "https://api.github.com/graphql"
 
-SELF_REVIEW_NOTE = (
-    "\n\n--- \n"
-    "> ℹ️ **Note:** GitHub does not permit approving pull requests authored by the same account. "
-    "The review and verdict above were submitted as a comment."
-)
-
 
 class GitHubClient:
     def __init__(self, token: str):
@@ -52,6 +46,33 @@ class GitHubClient:
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         return headers
+
+    def resolve_pr_number(self, owner: str, repo_name: str, identifier: str) -> Optional[str]:
+        if not identifier:
+            return None
+        clean_id = str(identifier).strip().lstrip("#")
+        if clean_id.isdigit():
+            return clean_id
+
+        if not self.token or not owner or not repo_name:
+            return None
+
+        try:
+            resp = requests.get(
+                f"{BASE_URL}/repos/{owner}/{repo_name}/pulls",
+                headers=self._headers(),
+                params={"head": f"{owner}:{identifier}", "state": "open"},
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                prs = resp.json()
+                if prs and isinstance(prs, list) and len(prs) > 0:
+                    resolved = str(prs[0].get("number"))
+                    logger.info(f"Resolved branch '{identifier}' to PR #{resolved}")
+                    return resolved
+        except Exception as e:
+            logger.debug(f"Failed to resolve PR from branch '{identifier}': {e}")
+        return None
 
     def fetch_bot_login(self) -> str:
         if not self.token:
@@ -106,25 +127,22 @@ class GitHubClient:
         event: str,
         comments: Optional[List[Dict[str, Any]]] = None,
     ) -> requests.Response:
-        resp = self.submit_review(repo, pr_number, body, event, comments)
-        if resp.status_code == 422:
-            error_text = resp.text.lower()
-            if "own pull request" in error_text and event != "COMMENT":
-                logger.warning("GitHub rejected review event on own pull request. Retrying as COMMENT...")
-                event = "COMMENT"
-                if SELF_REVIEW_NOTE not in body:
-                    body = body + SELF_REVIEW_NOTE
-                resp = self.submit_review(repo, pr_number, body, event, comments)
+        current_event = event
+        current_comments = comments
 
-            if resp.status_code == 422 and comments:
-                logger.warning("GitHub rejected 422 with comments. Retrying without inline comments...")
-                resp = self.submit_review(repo, pr_number, body, event, comments=None)
+        resp = self.submit_review(repo, pr_number, body, current_event, current_comments)
 
-                if resp.status_code == 422 and "own pull request" in resp.text.lower() and event != "COMMENT":
-                    logger.warning("Retrying as COMMENT without inline comments...")
-                    if SELF_REVIEW_NOTE not in body:
-                        body = body + SELF_REVIEW_NOTE
-                    resp = self.submit_review(repo, pr_number, body, "COMMENT", comments=None)
+        # Fallback 1: GitHub forbids APPROVE on self-authored PRs -> switch to COMMENT
+        if resp.status_code == 422 and "own pull request" in resp.text.lower() and current_event != "COMMENT":
+            logger.warning("Cannot approve own pull request. Retrying as COMMENT...")
+            current_event = "COMMENT"
+            resp = self.submit_review(repo, pr_number, body, current_event, current_comments)
+
+        # Fallback 2: Invalid inline comment line positions -> retry review body only
+        if resp.status_code == 422 and current_comments:
+            logger.warning("GitHub rejected inline comments (422). Retrying review body only...")
+            current_comments = None
+            resp = self.submit_review(repo, pr_number, body, current_event, current_comments)
 
         if resp.status_code >= 400:
             logger.error(f"GitHub API error: {resp.status_code} {resp.text}")
@@ -133,8 +151,14 @@ class GitHubClient:
         return resp
 
     def fetch_review_threads(self, owner: str, repo_name: str, pr_number: str) -> List[Dict[str, Any]]:
-        if not self.token:
+        if not self.token or not pr_number:
             return []
+        try:
+            pr_int = int(str(pr_number).strip())
+        except (ValueError, TypeError):
+            logger.warning(f"Skipping fetch_review_threads: pr_number '{pr_number}' is not a valid integer.")
+            return []
+
         query = """
         query($owner: String!, $repo: String!, $pr: Int!) {
           repository(owner: $owner, name: $repo) {
@@ -167,7 +191,7 @@ class GitHubClient:
             "variables": {
                 "owner": owner,
                 "repo": repo_name,
-                "pr": int(pr_number),
+                "pr": pr_int,
             },
         }
         try:

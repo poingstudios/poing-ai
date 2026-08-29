@@ -31,6 +31,7 @@ from poing_reviewer.ai.rag.factory import create_retriever
 from poing_reviewer.ai.thread_resolver import resolve_fixed_threads
 from poing_reviewer.core.config import (
     GITHUB_EVENT_MAP,
+    REVIEW_FOOTER,
     VERDICT_MAP,
     VERDICT_PRIORITY,
     Config,
@@ -65,6 +66,12 @@ def pick_verdict(verdicts: List[ReviewVerdict]) -> ReviewVerdict:
             best_score = score
             best = v if isinstance(v, ReviewVerdict) else ReviewVerdict(v)
     return best
+
+
+def _sanitize_markdown_text(text: str) -> str:
+    """Wraps raw unbackticked HTML tags in backticks to prevent unintended Markdown rendering."""
+    import re
+    return re.sub(r"(?<!`)(</?[a-zA-Z][a-zA-Z0-9_-]*(?:\s+[^>]*)?>)(?!`)", r"`\1`", text)
 
 
 class ReviewService:
@@ -109,6 +116,11 @@ class ReviewService:
             if self.cfg.LOCAL:
                 self._display_local_review(result)
             return result
+
+        if not self.cfg.LOCAL and self.cfg.REPO and self.cfg.PR_NUMBER:
+            resolved_pr = self.client.resolve_pr_number(self.cfg.owner, self.cfg.repo_name, self.cfg.PR_NUMBER)
+            if resolved_pr:
+                self.cfg.PR_NUMBER = resolved_pr
 
         if not self.cfg.LOCAL and self.cfg.GITHUB_TOKEN and not self.cfg.BOT_LOGIN:
             self.cfg.BOT_LOGIN = self.client.fetch_bot_login()
@@ -295,22 +307,18 @@ class ReviewService:
         body_parts.append(f"{verdict_label}\n")
 
         if result.summary:
-            body_parts.append(f"{result.summary}\n")
+            body_parts.append(f"{_sanitize_markdown_text(result.summary)}\n")
 
         if result.findings:
             body_parts.append("### Findings\n")
             body_parts.append("| Severity | File | Finding |")
             body_parts.append("|---|---|---|")
             for f in result.findings:
-                clean_finding = f.finding.replace("\n", " ").replace("|", "\\|")
+                clean_finding = _sanitize_markdown_text(f.finding).replace("\n", " ").replace("|", "\\|")
                 body_parts.append(f"| {f.severity} | `{f.file}` | {clean_finding} |")
             body_parts.append("")
 
-        body_parts.append(
-            "\n---\n"
-            "<sub>Reviewed by [Poing Reviewer](https://github.com/poingstudios/poing-reviewer) · "
-            "React with 👎 to suppress false positives</sub>"
-        )
+        body_parts.append(REVIEW_FOOTER)
 
         return "\n".join(body_parts)
 
