@@ -25,12 +25,6 @@ logger = get_logger("github_client")
 BASE_URL = "https://api.github.com"
 GRAPHQL_URL = "https://api.github.com/graphql"
 
-SELF_REVIEW_NOTE = (
-    "\n\n--- \n"
-    "> ℹ️ **Note:** GitHub does not permit approving pull requests authored by the same account. "
-    "The review and verdict above were submitted as a comment."
-)
-
 
 class GitHubClient:
     def __init__(self, token: str):
@@ -112,8 +106,6 @@ class GitHubClient:
             if "own pull request" in error_text and event != "COMMENT":
                 logger.warning("GitHub rejected review event on own pull request. Retrying as COMMENT...")
                 event = "COMMENT"
-                if SELF_REVIEW_NOTE not in body:
-                    body = body + SELF_REVIEW_NOTE
                 resp = self.submit_review(repo, pr_number, body, event, comments)
 
             if resp.status_code == 422 and comments:
@@ -122,8 +114,6 @@ class GitHubClient:
 
                 if resp.status_code == 422 and "own pull request" in resp.text.lower() and event != "COMMENT":
                     logger.warning("Retrying as COMMENT without inline comments...")
-                    if SELF_REVIEW_NOTE not in body:
-                        body = body + SELF_REVIEW_NOTE
                     resp = self.submit_review(repo, pr_number, body, "COMMENT", comments=None)
 
         if resp.status_code >= 400:
