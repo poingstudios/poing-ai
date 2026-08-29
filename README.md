@@ -79,8 +79,9 @@ jobs:
 
       - name: Checkout PR (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch'
-        run: gh pr checkout ${{ inputs.number }}
+        run: gh pr checkout "$PR_NUMBER"
         env:
+          PR_NUMBER: ${{ inputs.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Reviewer
