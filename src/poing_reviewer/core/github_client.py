@@ -127,21 +127,22 @@ class GitHubClient:
         event: str,
         comments: Optional[List[Dict[str, Any]]] = None,
     ) -> requests.Response:
-        resp = self.submit_review(repo, pr_number, body, event, comments)
-        if resp.status_code == 422:
-            error_text = resp.text.lower()
-            if "own pull request" in error_text and event != "COMMENT":
-                logger.warning("GitHub rejected review event on own pull request. Retrying as COMMENT...")
-                event = "COMMENT"
-                resp = self.submit_review(repo, pr_number, body, event, comments)
+        current_event = event
+        current_comments = comments
 
-            if resp.status_code == 422 and comments:
-                logger.warning("GitHub rejected 422 with comments. Retrying without inline comments...")
-                resp = self.submit_review(repo, pr_number, body, event, comments=None)
+        resp = self.submit_review(repo, pr_number, body, current_event, current_comments)
 
-                if resp.status_code == 422 and "own pull request" in resp.text.lower() and event != "COMMENT":
-                    logger.warning("Retrying as COMMENT without inline comments...")
-                    resp = self.submit_review(repo, pr_number, body, "COMMENT", comments=None)
+        # Fallback 1: GitHub forbids APPROVE on self-authored PRs -> switch to COMMENT
+        if resp.status_code == 422 and "own pull request" in resp.text.lower() and current_event != "COMMENT":
+            logger.warning("Cannot approve own pull request. Retrying as COMMENT...")
+            current_event = "COMMENT"
+            resp = self.submit_review(repo, pr_number, body, current_event, current_comments)
+
+        # Fallback 2: Invalid inline comment line positions -> retry review body only
+        if resp.status_code == 422 and current_comments:
+            logger.warning("GitHub rejected inline comments (422). Retrying review body only...")
+            current_comments = None
+            resp = self.submit_review(repo, pr_number, body, current_event, current_comments)
 
         if resp.status_code >= 400:
             logger.error(f"GitHub API error: {resp.status_code} {resp.text}")
