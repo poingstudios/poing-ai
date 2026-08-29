@@ -45,7 +45,7 @@ name: "Poing Reviewer"
 
 on:
   pull_request_target:
-    types: [opened, synchronize, review_requested]
+    types: [opened, synchronize, ready_for_review, review_requested]
   issues:
     types: [opened]
   workflow_dispatch:
@@ -62,11 +62,17 @@ on:
         description: 'PR or Issue number'
         required: true
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   review:
     if: >
-      github.event_name == 'pull_request_target' ||
-      (github.event_name == 'workflow_dispatch' && inputs.mode == 'review')
+      github.actor != 'dependabot[bot]' &&
+      (github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false) &&
+      (github.event_name == 'pull_request_target' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'review'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -88,13 +94,16 @@ jobs:
         uses: poingstudios/poing-reviewer@master
         with:
           mode: review
+          number: ${{ inputs.number }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 
   triage:
     if: >
-      github.event_name == 'issues' ||
-      (github.event_name == 'workflow_dispatch' && inputs.mode == 'triage')
+      github.actor != 'dependabot[bot]' &&
+      (github.event_name == 'issues' || github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false) &&
+      (github.event_name == 'issues' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'triage'))
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -106,6 +115,7 @@ jobs:
         uses: poingstudios/poing-reviewer@master
         with:
           mode: triage
+          number: ${{ inputs.number }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 ```
