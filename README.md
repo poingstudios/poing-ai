@@ -48,10 +48,25 @@ on:
     types: [opened, synchronize, review_requested]
   issues:
     types: [opened]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Mode: review or triage'
+        required: true
+        default: 'review'
+        type: choice
+        options:
+          - review
+          - triage
+      number:
+        description: 'PR or Issue number'
+        required: true
 
 jobs:
   review:
-    if: github.event_name == 'pull_request_target'
+    if: >
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'review')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -62,6 +77,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout PR (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: gh pr checkout ${{ inputs.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run Reviewer
         uses: poingstudios/poing-reviewer@master
         with:
@@ -70,7 +91,9 @@ jobs:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 
   triage:
-    if: github.event_name == 'issues'
+    if: >
+      github.event_name == 'issues' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'triage')
     runs-on: ubuntu-latest
     permissions:
       issues: write
