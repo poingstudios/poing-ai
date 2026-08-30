@@ -63,6 +63,22 @@ Customize the directories and RAG provider in `.github/poing.json`:
 
 ---
 
+## 🧪 Advanced Code-Intelligence RAG
+
+Beyond project guidelines, Poing AI employs two specialized code-level RAG analyzers during review:
+
+### 1. Test-Suite Pairing RAG
+When a source file is modified in a pull request (e.g. `src/poing_ai/services/review_service.py`), Poing AI automatically searches the repository to locate its matching test suite (`tests/test_services.py` or `tests/test_review_service.py`).
+- Passes test contents to the AI reviewer.
+- Checks whether new code paths, error states, and branches have corresponding test coverage.
+
+### 2. Cross-File Symbol Impact Analysis
+When new methods, functions, or classes are modified in the diff (e.g. `def calculate_total()`, `func _on_event()`, `public void Init()`):
+- Scans all files across the repository for external call sites and usages.
+- Provides a summary of dependent callers directly in the review prompt so the AI can verify that signature changes do not break external modules.
+
+---
+
 ## 💡 Best Practices for Guidelines
 
 To make your repository guidelines most effective with Poing AI:
