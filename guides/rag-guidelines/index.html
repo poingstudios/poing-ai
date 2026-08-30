@@ -671,6 +671,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#key-rag-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🎯 Key RAG Features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🎯 Key RAG Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-dynamic-diff-aware-querying" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 🌲 Dynamic Diff-Aware Querying
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-hierarchical-ast-breadcrumbs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 🧱 Hierarchical AST Breadcrumbs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#rag-providers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1106,6 +1145,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#key-rag-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🎯 Key RAG Features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🎯 Key RAG Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-dynamic-diff-aware-querying" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 🌲 Dynamic Diff-Aware Querying
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-hierarchical-ast-breadcrumbs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 🧱 Hierarchical AST Breadcrumbs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#rag-providers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1243,10 +1321,19 @@
 <li><strong>Targeted Enforcement</strong>: The AI reviews the code with the exact project rules in context (e.g. enforcing Godot <code>:=</code> syntax only on GDScript files).</li>
 </ol>
 <hr />
+<hr />
+<h2 id="key-rag-features">🎯 Key RAG Features<a class="headerlink" href="#key-rag-features" title="Permanent link">&para;</a></h2>
+<h3 id="1-dynamic-diff-aware-querying">1. 🌲 Dynamic Diff-Aware Querying<a class="headerlink" href="#1-dynamic-diff-aware-querying" title="Permanent link">&para;</a></h3>
+<p>Rather than querying static terms, Poing AI extracts changed file extensions (e.g. <code>.gd</code>, <code>.cs</code>, <code>.kt</code>, <code>.swift</code>), directories (<code>internal/</code>, <code>addons/</code>, <code>platforms/</code>), and added symbols (<code>class_name</code>, <code>preload</code>, <code>singleton</code>) to generate high-precision targeted queries:
+- <em>Example Query:</em> <code>"godot gdscript internal encapsulation class_name preload := type inference"</code></p>
+<h3 id="2-hierarchical-ast-breadcrumbs">2. 🧱 Hierarchical AST Breadcrumbs<a class="headerlink" href="#2-hierarchical-ast-breadcrumbs" title="Permanent link">&para;</a></h3>
+<p>Markdown files are parsed into heading hierarchy trees. Every chunk retains its exact context path so the AI never misattributes rules:
+- <em>Example Chunk Header:</em> <code>### Context: [AGENTS.md &gt; Coding Standards &gt; GDScript Rules &gt; Type Inference]</code></p>
+<hr />
 <h2 id="rag-providers">⚙️ RAG Providers<a class="headerlink" href="#rag-providers" title="Permanent link">&para;</a></h2>
 <p>Poing AI supports two RAG engines:</p>
 <h3 id="1-local-default">1. <code>local</code> (Default)<a class="headerlink" href="#1-local-default" title="Permanent link">&para;</a></h3>
-<p>A zero-dependency, lightweight markdown scanner that parses markdown headings, guidelines, and rule blocks directly from disk without external embedding models.</p>
+<p>A zero-dependency, lightweight markdown AST scanner that parses headings, maintains breadcrumbs, and scores sections against the PR diff terms without external embedding models.</p>
 <h3 id="2-vector">2. <code>vector</code><a class="headerlink" href="#2-vector" title="Permanent link">&para;</a></h3>
 <p>Uses semantic vector embeddings to perform cosine similarity searches across large documentation repositories.</p>
 <p>Supported embedders:
