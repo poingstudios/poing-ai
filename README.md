@@ -3,56 +3,73 @@
 [![Documentation](https://img.shields.io/badge/Docs-poingstudios.github.io%2Fpoing--ai-purple?logo=materialformkdocs)](https://poingstudios.github.io/poing-ai/)
 [![PyPI](https://img.shields.io/pypi/v/poing-ai.svg)](https://pypi.org/project/poing-ai/)
 [![GitHub Actions Marketplace](https://img.shields.io/badge/Marketplace-Poing%20AI-blue?logo=github)](https://github.com/marketplace/actions/poing-ai)
+[![CI](https://github.com/poingstudios/poing-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/poingstudios/poing-ai/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-**Poing AI** is an AI-powered code review, issue triage, and multi-platform dependency automation bot powered by Google Gemini. Tailored for game engine plugins (**Godot**, **Unity**, **Unreal**) and multi-platform native software (**Android**, **iOS**, **C#**, **C++**, **Rust**, **Python**).
+**Poing AI** is an enterprise-grade AI code reviewer, issue triager, and multi-platform dependency updater powered by Google Gemini, Ollama, and OpenAI-compatible models. Built with dedicated static-analysis analyzers for game engine plugins (**Godot Engine**, **Unity**, **Unreal Engine**) and multi-platform native code.
 
-📖 **[Read the Full Documentation](https://poingstudios.github.io/poing-ai/)**
-
----
-
-## ✨ Features
-
-- 🔍 **Intelligent Code Review**: Full-file ground-truth context with built-in game engine analyzers (**Godot Engine** `:=` static typing & encapsulation rules, Unity, Unreal).
-- 🧠 **RAG Guidelines Retrieval**: Automatically semantically retrieves relevant rules from `AGENTS.md` and repository docs to enforce your team's custom standards without token waste.
-- 🛡️ **Anti-Hallucination**: Queries live GitHub releases in real time to verify actions and dependencies.
-- 👎 **Thumbs-Down Learning**: Learns from developer `👎` reactions to permanently eliminate recurring false positives.
-- 🔄 **Thread Auto-Resolution**: Resolves fixed review comment threads automatically via GitHub GraphQL.
-- 💬 **On-Demand PR Commands**: Type `/review` or `@poing-ai review` in any PR comment to trigger a fresh re-review.
-- 🏷️ **Issue & PR Triage**: Classifies issues into labels, assigns priority (`high`, `medium`, `low`), and checks duplicates.
-- 📦 **Dependency Automation**: Automatically checks and bumps upstream dependencies (Google Maven, Maven Central, SPM, Godot Releases, Unity UPM, NuGet).
-- 💻 **Local CLI Mode**: Review local git diffs and test triage directly from your terminal.
+📖 **[Official Documentation](https://poingstudios.github.io/poing-ai/)** · 🚀 **[Quickstart](#-quickstart)** · 🏛️ **[Architecture](#-how-it-works)**
 
 ---
 
-## 🚀 Quick Start (GitHub Actions)
+## 🏛️ How It Works
 
-Add Poing AI to your repository in 2 steps:
+```mermaid
+flowchart LR
+    subgraph Input["📥 PR & Working Tree"]
+        DIFF["PR Diff"]
+        FILES["Full File Context"]
+    end
 
-### 1. Add Gemini API Key
-In your repository: **Settings ➡️ Secrets and variables ➡️ Actions ➡️ New repository secret**
-- Name: **`GEMINI_API_KEY`** (Get a free key from **[Google AI Studio](https://aistudio.google.com/)**).
+    subgraph Intelligence["🧠 Code Intelligence RAG"]
+        RAG1["Dynamic Guidelines RAG<br/><i>(AST Breadcrumbs)</i>"]
+        RAG2["Test-Suite Pairing<br/><i>(Coverage Context)</i>"]
+        RAG3["Symbol Impact Analysis<br/><i>(Cross-File Call Sites)</i>"]
+    end
 
-### 2. Create Workflow (`.github/workflows/poing-ai.yml`)
+    subgraph Engine["🤖 AI Provider"]
+        AI["Gemini / Ollama / OpenAI"]
+    end
+
+    subgraph Filter["🛡️ Anti-Hallucination & Memory"]
+        FP1["Live GitHub API Verifier"]
+        FP2["👎 Thumbs-Down Memory Filter"]
+    end
+
+    subgraph Output["📤 Review Output"]
+        GH["GitHub PR Review & Line Comments"]
+        RESOLVE["Auto-Resolve Fixed Threads"]
+        CLI["Terminal Output"]
+    end
+
+    DIFF & FILES --> RAG1 & RAG2 & RAG3
+    RAG1 & RAG2 & RAG3 --> AI
+    AI --> FP1 --> FP2
+    FP2 --> GH & RESOLVE & CLI
+```
+
+---
+
+## 🚀 Quickstart
+
+### Option 1: GitHub Action (Automated PR Reviews)
+
+Create `.github/workflows/poing-ai.yml`:
 
 ```yaml
-name: "Poing AI"
+name: "Poing AI Review"
 
 on:
   pull_request_target:
-    types: [opened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review]
   issue_comment:
     types: [created]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
-  cancel-in-progress: true
 
 jobs:
   review:
     if: >
       (github.event_name == 'pull_request_target' && !github.event.pull_request.draft) ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request && (contains(github.event.comment.body, '/review') || contains(github.event.comment.body, '@poing-ai review')))
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/review'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -63,7 +80,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout PR (for comment trigger)
+      - name: Checkout PR (for /review comment trigger)
         if: github.event_name == 'issue_comment'
         run: gh pr checkout "$PR_NUMBER"
         env:
@@ -73,49 +90,120 @@ jobs:
       - name: 2. Run Poing AI
         uses: poingstudios/poing-ai@v1
         with:
-          number: ${{ github.event.issue.number || github.event.pull_request.number }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+```
+
+*(Add a free `GEMINI_API_KEY` from [Google AI Studio](https://aistudio.google.com/) to your GitHub repository secrets).*
+
+---
+
+### Option 2: Local Terminal CLI
+
+Install Poing AI via PyPI:
+
+```bash
+pip install --upgrade poing-ai
+```
+
+Run code reviews directly on your local git changes before pushing:
+
+```bash
+# Review uncommitted changes (uses free Gemini or local Ollama)
+poing --local
+
+# Review staged changes only
+poing --local --staged
+
+# Run 100% offline using a local Ollama model
+poing --local --provider ollama --model deepseek-r1:latest
 ```
 
 ---
 
 ## 💬 PR Commands
 
-Interact with Poing AI directly from pull request comments:
+Interact with Poing AI inside GitHub Pull Requests:
 
 | Command | Description |
 |---|---|
-| `/review` | Requests an immediate, fresh code review |
-| `@poing-ai review` | Alternative mention format to trigger review |
+| `/review` | Triggers a fresh, immediate code review |
+| `@poing-ai review` | Alternative mention to request a review |
 
 ---
 
-## 💻 Local Terminal CLI
+## 🔍 Deep Dive & Advanced Architecture
 
-Install via PyPI:
+<details>
+<summary><b>🧠 1. Code Intelligence RAG Pipeline</b></summary>
+<br>
 
-```bash
-pip install --upgrade poing-ai
+Poing AI incorporates a 5-pillar context retrieval architecture:
+
+- **Hierarchical AST Markdown Breadcrumbs**: Chunks guidelines while preserving structural breadcrumbs (e.g. `[AGENTS.md > GDScript Rules > Type Inference]`).
+- **Dynamic Diff-Aware Querying**: Inspects modified file extensions, paths, and language tokens to retrieve only relevant rules.
+- **Test-Suite Pairing**: Automatically discovers and provides matching unit test files to verify test coverage.
+- **Cross-File Symbol Impact**: Scans repository files for external usages and callers of functions modified in the PR.
+- **Full-File Ground Truth**: Passes the entire modified files to ensure the model never hallucinates missing imports or scope errors.
+</details>
+
+<details>
+<summary><b>🎮 2. Game Engine & Ecosystem Analyzers</b></summary>
+<br>
+
+Poing AI includes native architectural rules for specialized ecosystems:
+
+- **Godot Engine**: Enforces `:=` type inference, node lifecycle safety (`_ready` / `_physics_process`), signal conventions, and `internal/` folder encapsulation without `class_name`.
+- **Unity**: Detects `null` comparison gotchas with `UnityEngine.Object`, GC allocations in `Update()`, and memory leaks with native textures/meshes.
+- **Unreal Engine**: Enforces `UCLASS` / `UPROPERTY` garbage collection hygiene, `TArray` reallocations, and Smart Pointer conventions.
+- **Generic / Multi-Platform**: Strict API parity validation across Android (Kotlin/JNI), iOS (Swift/Obj-C), C#, and C++.
+</details>
+
+<details>
+<summary><b>🛡️ 3. Anti-Hallucination & Developer Feedback Loop</b></summary>
+<br>
+
+- **Live GitHub Release API Checking**: Verifies GitHub Action tags and package versions against live GitHub APIs in real-time before flagging them as invalid.
+- **Thumbs-Down Memory Filter**: If a developer reacts with `👎` to a comment, Poing AI hashes and suppresses that finding across future PR reviews.
+- **Automatic Thread Resolution**: Automatically resolves fixed review threads via GitHub GraphQL when the issue is corrected in a subsequent commit.
+</details>
+
+<details>
+<summary><b>📦 4. Issue Triage & Multi-Platform Dependency Sync</b></summary>
+<br>
+
+- **Issue & PR Triage (`mode: triage`)**: Automatically categorizes issues, assigns labels (`bug`, `enhancement`, `ios`, `android`), assigns priority, and detects duplicates.
+- **Upstream Dependency Automation (`mode: sync`)**: Checks Google Maven, Maven Central, SPM, Godot Releases, Unity UPM, and NuGet, updates manifests, and generates changelogs.
+</details>
+
+<details>
+<summary><b>⚙️ 5. Repository Configuration (`.github/poing.json`)</b></summary>
+<br>
+
+Customize behavior per repository with a `.github/poing.json` file:
+
+```json
+{
+  "provider": "gemini",
+  "review": {
+    "model": "gemini-3.7-flash",
+    "strict_ground_truth": true,
+    "rag": {
+      "provider": "local",
+      "guidelines_dirs": [".agents", "docs"]
+    }
+  },
+  "triage": {
+    "auto_assign_priority": true
+  }
+}
 ```
-
-Run code reviews on your local working tree before pushing:
-
-```bash
-# Review uncommitted changes
-poing --local
-
-# Review staged changes only
-poing --local --staged
-
-# Use a local offline Ollama model
-poing --local --provider ollama --model deepseek-r1:latest
-```
+</details>
 
 ---
 
-## 📖 Documentation & Guides
+## 📖 Complete Documentation
 
-For complete guides, configuration options, and custom AI provider setup:
+For detailed configuration references, CLI flags, self-hosted webhooks, and AI provider setup guides:
 
 👉 **[https://poingstudios.github.io/poing-ai/](https://poingstudios.github.io/poing-ai/)**
 
