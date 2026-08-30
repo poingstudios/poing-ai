@@ -328,6 +328,9 @@ class FixService:
 
         timeout = getattr(self.cfg, "TEST_TIMEOUT", 60)
         logger.info(f"Running test validation command: `{test_cmd}` (timeout={timeout}s)...")
+        child_env = os.environ.copy()
+        child_env.pop("MODE", None)
+        child_env.pop("TRIGGER_ACTION", None)
         try:
             res = subprocess.run(
                 test_cmd,
@@ -336,6 +339,7 @@ class FixService:
                 text=True,
                 timeout=timeout,
                 cwd=str(self.root_dir),
+                env=child_env,
             )
             output = (res.stdout or "") + "\n" + (res.stderr or "")
             return (res.returncode == 0), output.strip()
