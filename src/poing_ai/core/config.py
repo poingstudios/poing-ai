@@ -94,7 +94,10 @@ REVIEW_FOOTER = (
     "\n\n---\n"
     "<details>\n"
     "<summary>ℹ️ <b>About Poing AI</b></summary>\n<br>\n\n"
-    "[Poing AI](https://github.com/poingstudios/poing-ai) is an open-source AI code reviewer and guidelines verifier for Godot, Unity, Unreal, and multi-platform repositories.\n"
+    "[Poing AI](https://github.com/poingstudios/poing-ai) is an open-source AI code reviewer and guidelines verifier for Godot, Unity, Unreal, and multi-platform repositories.\n\n"
+    "**Commands:**\n"
+    "- Comment `/review` or `@poing-ai review` on this PR to run a fresh review *(requires `issue_comment` trigger in workflow)*.\n"
+    "- Run locally in terminal: `poing --local`\n"
     "</details>"
 )
 
