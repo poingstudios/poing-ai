@@ -67,10 +67,12 @@ jobs:
   triage:
     if: >
       github.event_name == 'issues' ||
+      (github.event_name == 'pull_request_target' && github.event.action == 'opened') ||
       (github.event_name == 'workflow_dispatch' && inputs.mode == 'triage')
     runs-on: ubuntu-latest
     permissions:
       issues: write
+      pull-requests: write
     steps:
       - name: 1. Generate App Token
         id: app-token
