@@ -69,7 +69,7 @@ jobs:
   review:
     if: >
       (github.event_name == 'pull_request_target' && !github.event.pull_request.draft) ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/review'))
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && (contains(github.event.comment.body, '/review') || contains(github.event.comment.body, '@poing-ai review')))
     runs-on: ubuntu-latest
     permissions:
       contents: read
