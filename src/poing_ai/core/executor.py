@@ -16,6 +16,8 @@
 
 import subprocess
 
+DEFAULT_TIMEOUT = 30
+
 
 def run_custom_command(cmd_string: str) -> str:
     """Executes arbitrary shell command."""
