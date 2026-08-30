@@ -50,13 +50,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout PR (workflow_dispatch or comment trigger)
-        if: github.event_name == 'workflow_dispatch' || github.event_name == 'issue_comment'
-        run: gh pr checkout "$PR_NUMBER"
-        env:
-          PR_NUMBER: ${{ inputs.number || github.event.issue.number }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
-
       - name: 3. Run Reviewer (Self-Dogfooding)
         uses: ./
         with:
@@ -116,12 +109,6 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-
-      - name: Checkout PR
-        run: gh pr checkout "$PR_NUMBER"
-        env:
-          PR_NUMBER: ${{ inputs.number || github.event.issue.number }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: 3. Run Auto-Fixer (Self-Dogfooding)
         uses: ./

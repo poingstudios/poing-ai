@@ -145,11 +145,8 @@ class SyncService:
         )
 
         if self.cfg.LOCAL:
-            print("\n" + "=" * 60)
-            print("DEPENDENCY SYNC SUMMARY")
-            print(summary_table)
-            print("\n--- AI RELEASE NOTES ---")
-            print(changelog_notes)
-            print("=" * 60 + "\n")
+            sys.stdout.write(
+                f"\n{'=' * 60}\nDEPENDENCY SYNC SUMMARY\n{summary_table}\n\n--- AI RELEASE NOTES ---\n{changelog_notes}\n{'=' * 60}\n\n"
+            )
 
         return summary
