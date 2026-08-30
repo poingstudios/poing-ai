@@ -721,6 +721,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#advanced-code-intelligence-rag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🧪 Advanced Code-Intelligence RAG
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🧪 Advanced Code-Intelligence RAG">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-test-suite-pairing-rag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Test-Suite Pairing RAG
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-cross-file-symbol-impact-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Cross-File Symbol Impact Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#best-practices-for-guidelines" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1117,6 +1156,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#advanced-code-intelligence-rag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🧪 Advanced Code-Intelligence RAG
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🧪 Advanced Code-Intelligence RAG">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-test-suite-pairing-rag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Test-Suite Pairing RAG
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-cross-file-symbol-impact-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Cross-File Symbol Impact Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#best-practices-for-guidelines" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1192,6 +1270,17 @@
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="p">}</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">}</span>
 </span></code></pre></div>
+<hr />
+<h2 id="advanced-code-intelligence-rag">🧪 Advanced Code-Intelligence RAG<a class="headerlink" href="#advanced-code-intelligence-rag" title="Permanent link">&para;</a></h2>
+<p>Beyond project guidelines, Poing AI employs two specialized code-level RAG analyzers during review:</p>
+<h3 id="1-test-suite-pairing-rag">1. Test-Suite Pairing RAG<a class="headerlink" href="#1-test-suite-pairing-rag" title="Permanent link">&para;</a></h3>
+<p>When a source file is modified in a pull request (e.g. <code>src/poing_ai/services/review_service.py</code>), Poing AI automatically searches the repository to locate its matching test suite (<code>tests/test_services.py</code> or <code>tests/test_review_service.py</code>).
+- Passes test contents to the AI reviewer.
+- Checks whether new code paths, error states, and branches have corresponding test coverage.</p>
+<h3 id="2-cross-file-symbol-impact-analysis">2. Cross-File Symbol Impact Analysis<a class="headerlink" href="#2-cross-file-symbol-impact-analysis" title="Permanent link">&para;</a></h3>
+<p>When new methods, functions, or classes are modified in the diff (e.g. <code>def calculate_total()</code>, <code>func _on_event()</code>, <code>public void Init()</code>):
+- Scans all files across the repository for external call sites and usages.
+- Provides a summary of dependent callers directly in the review prompt so the AI can verify that signature changes do not break external modules.</p>
 <hr />
 <h2 id="best-practices-for-guidelines">💡 Best Practices for Guidelines<a class="headerlink" href="#best-practices-for-guidelines" title="Permanent link">&para;</a></h2>
 <p>To make your repository guidelines most effective with Poing AI:</p>
