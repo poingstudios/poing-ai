@@ -30,12 +30,21 @@ jobs:
     name: Check SemVer & Create Release
     runs-on: ubuntu-latest
     steps:
-      - name: 1. Checkout Code
+      - name: 1. Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+        continue-on-error: true
+
+      - name: 2. Checkout Code
         uses: actions/checkout@v7
         with:
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: 2. Extract Version from pyproject.toml
+      - name: 3. Extract Version from pyproject.toml
         id: get-version
         run: |
           VERSION=$(grep -m 1 '^version = ' pyproject.toml | sed -E 's/version = "(.*)"/\1/')
@@ -43,7 +52,7 @@ jobs:
           echo "TAG_NAME=v$VERSION" >> "$GITHUB_OUTPUT"
           echo "Extracted SemVer version: $VERSION"
 
-      - name: 3. Check if Tag Already Exists
+      - name: 4. Check if Tag Already Exists
         id: check-tag
         run: |
           TAG="${{ steps.get-version.outputs.TAG_NAME }}"
@@ -55,10 +64,10 @@ jobs:
             echo "Tag $TAG does not exist. Proceeding with release creation."
           fi
 
-      - name: 4. Create GitHub Release & Update Major Tag
+      - name: 5. Create GitHub Release & Update Major Tag
         if: steps.check-tag.outputs.exists == 'false'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.get-version.outputs.TAG_NAME }}
           VERSION: ${{ steps.get-version.outputs.VERSION }}
         run: |
@@ -70,7 +79,7 @@ jobs:
 
           # 2. Update floating major tag (e.g. v1) so users can pin @v1
           MAJOR_TAG="v$(echo $VERSION | cut -d. -f1)"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "poing-ai[bot]"
+          git config user.email "296332247+poing-ai[bot]@users.noreply.github.com"
           git tag -fa "$MAJOR_TAG" -m "Update $MAJOR_TAG pointer to $TAG"
           git push -f origin "$MAJOR_TAG"
