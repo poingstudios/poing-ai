@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-from poing_reviewer.ai.rag.gemini_embedder import GeminiEmbedder
-from poing_reviewer.ai.rag.vector_rag import VectorRAGRetriever, cosine_similarity
+from poing_ai.ai.rag.gemini_embedder import GeminiEmbedder
+from poing_ai.ai.rag.vector_rag import VectorRAGRetriever, cosine_similarity
 
 
 class TestRAG(unittest.TestCase):

@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from poing_reviewer.datasources.maven import MavenDatasource
-from poing_reviewer.datasources.spm_github import SPMGitHubDatasource
-from poing_reviewer.datasources.godot_releases import GodotReleasesDatasource
-from poing_reviewer.datasources.nuget import NuGetDatasource
+from poing_ai.datasources.maven import MavenDatasource
+from poing_ai.datasources.spm_github import SPMGitHubDatasource
+from poing_ai.datasources.godot_releases import GodotReleasesDatasource
+from poing_ai.datasources.nuget import NuGetDatasource
 
 
 class TestDatasources(unittest.TestCase):

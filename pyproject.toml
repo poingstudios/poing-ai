@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "poing-reviewer"
+name = "poing-ai"
 version = "1.0.0"
 description = "AI-powered automated code review, triage, and multi-platform dependency updater for game engines and native repositories."
 readme = "README.md"
@@ -13,15 +13,50 @@ requires-python = ">=3.9"
 dependencies = [
     "requests>=2.31.0",
 ]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Bug Tracking",
+]
+keywords = [
+    "code-review",
+    "ai",
+    "gemini",
+    "godot",
+    "unity",
+    "unreal",
+    "github-actions",
+    "triage",
+    "dependencies",
+    "rag",
+]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
     "pytest-mock>=3.11.0",
+    "build>=1.0.0",
+    "twine>=4.0.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/poingstudios/poing-ai"
+Documentation = "https://github.com/poingstudios/poing-ai#readme"
+Repository = "https://github.com/poingstudios/poing-ai"
+Issues = "https://github.com/poingstudios/poing-ai/issues"
+Changelog = "https://github.com/poingstudios/poing-ai/releases"
+
 [project.scripts]
-poing-reviewer = "poing_reviewer.cli:main"
+poing-ai = "poing_ai.cli:main"
+poing = "poing_ai.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -1,4 +1,4 @@
-name: 'Poing Reviewer'
+name: 'Poing AI'
 description: 'AI Code Review, Triage, and Multi-Platform Dependency Automation powered by Google Gemini.'
 author: 'Poing Studios'
 branding:
@@ -32,6 +32,26 @@ inputs:
     default: '5'
   base-ref:
     description: 'Base git reference branch for diff'
+    required: false
+    default: ''
+  provider:
+    description: 'AI provider: gemini, openai, deepseek, ollama, groq, openrouter, or auto'
+    required: false
+    default: 'gemini'
+  api-key:
+    description: 'Generic AI API key'
+    required: false
+    default: ''
+  openai-api-key:
+    description: 'OpenAI API key'
+    required: false
+    default: ''
+  deepseek-api-key:
+    description: 'DeepSeek API key'
+    required: false
+    default: ''
+  api-base:
+    description: 'Custom API base URL (e.g. for Ollama or custom OpenAI-compatible endpoints)'
     required: false
     default: ''
   number:
@@ -72,13 +92,18 @@ runs:
         fi
       shell: bash
 
-    - name: Run Poing Reviewer
+    - name: Run Poing AI
       id: runner
       env:
         PYTHONPATH: ${{ github.action_path }}/src
         MODE: ${{ inputs.mode }}
         GITHUB_TOKEN: ${{ inputs.github-token || github.token }}
+        AI_PROVIDER: ${{ inputs.provider }}
+        AI_API_KEY: ${{ inputs.api-key }}
         GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
+        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+        DEEPSEEK_API_KEY: ${{ inputs.deepseek-api-key }}
+        AI_BASE_URL: ${{ inputs.api-base }}
         MODEL_NAME: ${{ inputs.model }}
         MAX_CHARS: ${{ inputs.max-chars }}
         MAX_BATCHES: ${{ inputs.max-batches }}
@@ -93,5 +118,5 @@ runs:
         ISSUE_ACTION: ${{ github.event.action }}
         COMMENT_BODY: ${{ github.event.comment.body }}
         TRIGGER_ACTION: ${{ github.event.action }}
-      run: python ${{ github.action_path }}/poing_reviewer.py
+      run: python ${{ github.action_path }}/poing_ai.py
       shell: bash

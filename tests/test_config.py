@@ -1,5 +1,5 @@
 import unittest
-from poing_reviewer.core.config import Config, build_model_list, fingerprint, parse_repo
+from poing_ai.core.config import Config, build_model_list, fingerprint, parse_repo
 
 
 class TestConfig(unittest.TestCase):

@@ -1,10 +1,10 @@
-# Poing Reviewer — Project Intelligence
+# Poing AI — Project Intelligence
 
-This file provides architectural context, coding guidelines, and execution protocols for Poing Reviewer.
+This file provides architectural context, coding guidelines, and execution protocols for Poing AI.
 
 ## Purpose
 
-Poing Reviewer is an enterprise-grade AI bot, CLI tool, and GitHub Action powered by LLMs (Gemini, Ollama, OpenAI-compatible) that automates:
+Poing AI is an enterprise-grade AI bot, CLI tool, and GitHub Action powered by LLMs (Gemini, Ollama, OpenAI-compatible) that automates:
 1. **Code Review**: Analyzes pull request diffs, checks repository guidelines, detects game-engine violations (Godot, Unity, Unreal), eliminates false positives, and posts structured reviews with line-level comments.
 2. **Issue & PR Triage**: Classifies issues into categories, assigns priority, checks duplicates, and auto-manages labels.
 3. **Dependency Automation**: Scans upstream datasources (Google Maven, Maven Central, SPM GitHub, Godot releases, Unity UPM, NuGet), updates manifest pins, and generates AI release changelog summaries.
@@ -12,7 +12,7 @@ Poing Reviewer is an enterprise-grade AI bot, CLI tool, and GitHub Action powere
 ## Repository Layout
 
 ```
-src/poing_reviewer/
+src/poing_ai/
 ├── core/                  # Models, Config, Git, GitHub client, Logging
 ├── ai/                    # BaseAIProvider, GeminiProvider, False-Positive Filters, Thread Resolver
 │   ├── rag/               # BaseRetriever, LocalFileRetriever, Embedders, Vector RAG
@@ -30,17 +30,17 @@ src/poing_reviewer/
 
 | File / Module | Responsibility |
 | :--- | :--- |
-| `src/poing_reviewer/cli.py` | Argument parsing (`--mode`, `--local`, `--model`, `--provider`, etc.) and entrypoint dispatcher |
-| `src/poing_reviewer/core/config.py` | Central `Config` object, environment variable mappings, `poing.json` discovery |
-| `src/poing_reviewer/core/git.py` | Git diff extraction (`get_git_diff`), batch splitting, hunk annotation `[file L#]` |
-| `src/poing_reviewer/core/github_client.py` | REST & GraphQL GitHub API client (reviews, comments, threads, reactions, labels) |
-| `src/poing_reviewer/core/models.py` | Dataclasses & Enums (`ReviewResult`, `ReviewVerdict`, `TriageResult`, `DependencyUpdate`) |
-| `src/poing_reviewer/ai/base.py` | `BaseAIProvider` abstract class (`generate_review`, `generate_triage`, `generate_changelog_summary`) |
-| `src/poing_reviewer/ai/gemini.py` | Google Gemini REST API implementation with structured JSON schema output |
-| `src/poing_reviewer/ai/rag/` | `LocalFileRetriever` (markdown scanner), `GeminiEmbedder`, `VectorRAGRetriever` |
-| `src/poing_reviewer/services/review_service.py` | End-to-end review lifecycle: git diff, RAG guidelines, engine rules, AI batching, false-positive filtering, local display / GitHub submission |
-| `src/poing_reviewer/services/triage_service.py` | Issue & PR triage categorization and label synchronization |
-| `src/poing_reviewer/services/sync_service.py` | Dependency parsing, upstream release checking, changelog generation |
+| `src/poing_ai/cli.py` | Argument parsing (`--mode`, `--local`, `--model`, `--provider`, etc.) and entrypoint dispatcher |
+| `src/poing_ai/core/config.py` | Central `Config` object, environment variable mappings, `poing.json` discovery |
+| `src/poing_ai/core/git.py` | Git diff extraction (`get_git_diff`), batch splitting, hunk annotation `[file L#]` |
+| `src/poing_ai/core/github_client.py` | REST & GraphQL GitHub API client (reviews, comments, threads, reactions, labels) |
+| `src/poing_ai/core/models.py` | Dataclasses & Enums (`ReviewResult`, `ReviewVerdict`, `TriageResult`, `DependencyUpdate`) |
+| `src/poing_ai/ai/base.py` | `BaseAIProvider` abstract class (`generate_review`, `generate_triage`, `generate_changelog_summary`) |
+| `src/poing_ai/ai/gemini.py` | Google Gemini REST API implementation with structured JSON schema output |
+| `src/poing_ai/ai/rag/` | `LocalFileRetriever` (markdown scanner), `GeminiEmbedder`, `VectorRAGRetriever` |
+| `src/poing_ai/services/review_service.py` | End-to-end review lifecycle: git diff, RAG guidelines, engine rules, AI batching, false-positive filtering, local display / GitHub submission |
+| `src/poing_ai/services/triage_service.py` | Issue & PR triage categorization and label synchronization |
+| `src/poing_ai/services/sync_service.py` | Dependency parsing, upstream release checking, changelog generation |
 
 ## Testing & Verification
 
@@ -62,13 +62,13 @@ python3 -m unittest discover tests
 ### Local CLI Execution
 ```bash
 # Run local review on uncommitted/staged changes
-python3 -m poing_reviewer.cli --local
+python3 -m poing_ai.cli --local
 
 # Run triage locally
-python3 -m poing_reviewer.cli --mode triage --local --issue-title "Bug title" --issue-body "Description"
+python3 -m poing_ai.cli --mode triage --local --issue-title "Bug title" --issue-body "Description"
 
 # Run dependency sync locally in dry-run mode
-python3 -m poing_reviewer.cli --mode sync --local --dry-run
+python3 -m poing_ai.cli --mode sync --local --dry-run
 ```
 
 ### 2. Triage (`mode: triage`)

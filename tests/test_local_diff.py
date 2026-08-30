@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from poing_reviewer.core.git import get_git_diff
+from poing_ai.core.git import get_git_diff
 
 
 class TestLocalDiff(unittest.TestCase):

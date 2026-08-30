@@ -3,11 +3,11 @@ import hmac
 import unittest
 from unittest.mock import MagicMock, patch
 
-from poing_reviewer.server.auth import verify_webhook_signature
+from poing_ai.server.auth import verify_webhook_signature
 
 try:
     from fastapi.testclient import TestClient
-    from poing_reviewer.server.app import app
+    from poing_ai.server.app import app
     HAS_FASTAPI = True
 except ImportError:
     HAS_FASTAPI = False
@@ -28,10 +28,10 @@ class TestServer(unittest.TestCase):
         client = TestClient(app)
         response = client.get("/health")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"status": "ok", "service": "poing-reviewer"})
+        self.assertEqual(response.json(), {"status": "ok", "service": "poing-ai"})
 
     @unittest.skipUnless(HAS_FASTAPI, "FastAPI not installed in local environment")
-    @patch("poing_reviewer.server.app.get_installation_token")
+    @patch("poing_ai.server.app.get_installation_token")
     @patch.dict(
         "os.environ",
         {

@@ -3,11 +3,11 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
-from poing_reviewer.core.config import Config
-from poing_reviewer.core.models import ReviewResult, ReviewVerdict, TriagePriority, TriageResult
-from poing_reviewer.services.review_service import ReviewService
-from poing_reviewer.services.triage_service import TriageService
-from poing_reviewer.services.sync_service import SyncService
+from poing_ai.core.config import Config
+from poing_ai.core.models import ReviewResult, ReviewVerdict, TriagePriority, TriageResult
+from poing_ai.services.review_service import ReviewService
+from poing_ai.services.triage_service import TriageService
+from poing_ai.services.sync_service import SyncService
 
 
 class TestServices(unittest.TestCase):

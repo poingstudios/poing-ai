@@ -34,4 +34,4 @@ COPY src/ ./src/
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "uvicorn poing_reviewer.server.app:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "uvicorn poing_ai.server.app:app --host 0.0.0.0 --port ${PORT}"]
