@@ -123,8 +123,8 @@ jobs:
       - name: 4. Commit and Push Bumped Version
         if: steps.semver.outputs.CHANGED == 'true'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "poing-ai[bot]"
+          git config user.email "296332247+poing-ai[bot]@users.noreply.github.com"
           git add pyproject.toml src/poing_ai/__init__.py
           git commit -m "chore(release): bump version to v${{ steps.semver.outputs.VERSION }}"
           git pull origin master --rebase
