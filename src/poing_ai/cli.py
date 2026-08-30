@@ -197,38 +197,42 @@ def main(argv: Optional[List[str]] = None) -> int:
     mode = cfg.MODE
     logger.info(f"Running Poing AI in '{mode}' mode (local={cfg.LOCAL}, provider={cfg.PROVIDER}, dry_run={cfg.DRY_RUN})...")
 
-    if mode == "triage":
-        service = TriageService(cfg)
-        result = service.run()
-        return 0 if result is not None else 1
+    try:
+        if mode == "triage":
+            service = TriageService(cfg)
+            result = service.run()
+            return 0 if result is not None else 1
 
-    if mode in ("sync", "dependencies"):
-        service = SyncService(cfg)
-        summary = service.run()
-        # Export GitHub Action outputs if running in GH Actions
-        github_output = os.environ.get("GITHUB_OUTPUT")
-        if github_output:
-            with open(github_output, "a", encoding="utf-8") as f:
-                f.write(f"has_updates={'true' if summary.has_updates else 'false'}\n")
-                # Delimited multiline outputs
-                f.write("summary_table<<EOF\n")
-                f.write(summary.summary_table + "\n")
-                f.write("EOF\n")
-                f.write("pr_body<<EOF\n")
-                f.write(summary.changelog_notes + "\n")
-                f.write("EOF\n")
+        if mode in ("sync", "dependencies"):
+            service = SyncService(cfg)
+            summary = service.run()
+            # Export GitHub Action outputs if running in GH Actions
+            github_output = os.environ.get("GITHUB_OUTPUT")
+            if github_output:
+                with open(github_output, "a", encoding="utf-8") as f:
+                    f.write(f"has_updates={'true' if summary.has_updates else 'false'}\n")
+                    # Delimited multiline outputs
+                    f.write("summary_table<<EOF\n")
+                    f.write(summary.summary_table + "\n")
+                    f.write("EOF\n")
+                    f.write("pr_body<<EOF\n")
+                    f.write(summary.changelog_notes + "\n")
+                    f.write("EOF\n")
+            return 0
+
+        # Default: mode == "review"
+        service = ReviewService(cfg)
+        review_result = service.run()
+        if review_result is None:
+            return 1
+
+        if cfg.LOCAL and cfg.FAIL_ON_CHANGES and review_result.verdict.value == "CHANGES_REQUESTED":
+            return 1
+
         return 0
-
-    # Default: mode == "review"
-    service = ReviewService(cfg)
-    review_result = service.run()
-    if review_result is None:
-        return 1
-
-    if cfg.LOCAL and cfg.FAIL_ON_CHANGES and review_result.verdict.value == "CHANGES_REQUESTED":
-        return 1
-
-    return 0
+    except KeyboardInterrupt:
+        logger.info("Operation cancelled by user.")
+        return 130
 
 
 if __name__ == "__main__":
