@@ -114,6 +114,7 @@ jobs:
         uses: ./
         with:
           mode: fix
+          provider: antigravity
           number: ${{ inputs.number || github.event.issue.number }}
           github-token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
