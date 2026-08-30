@@ -105,7 +105,7 @@ PR Title: {pr_title}
 2. **NO SPECULATION**: NEVER post speculative comments such as "Please ensure other parts of the file/codebase don't use this", "make sure this doesn't break unseen code", or "not shown in this diff". If you do not see a definite bug in the provided context, do NOT comment.
 3. **NO NITPICKS**: Do NOT comment on personal style preferences, trivial formatting, or comments.
 4. **EMPTY IS FINE**: If the changes are clean and correct, return `{{"verdict": "APPROVED", "summary": "...", "findings": [], "comments": []}}`. Do NOT invent issues.
-5. **EXACT LINE MATCHING**: Inline comments must specify the exact line number from the `Annotated Diff` prefixed with `[<file> L<number>]`.
+5. **EXACT LINE MATCHING**: Inline comments must specify the exact line number from the `Annotated Diff` in the `line` field. Write the comment text directly in `body` without prepending file or line prefixes (e.g., do not start with `[file L#]`).
 6. **BACKTICK CODE & HTML TAGS**: Always enclose all HTML tags (e.g. `<details>`, `<summary>`, `<div>`), function names, types, and code symbols in backticks to prevent raw HTML rendering issues in Markdown.
 
 ## Output format

@@ -64,8 +64,10 @@ class TestServices(unittest.TestCase):
 
     def test_sanitize_markdown_text(self):
         from poing_ai.services.review_service import _sanitize_markdown_text
-        raw = 'Logic error.\\n\\nExample:\\npython\\nsha = run(["git"])\\n'
-        cleaned = _sanitize_markdown_text(raw)
+        raw = '[src/main.py L42] Logic error.\\n\\nExample:\\npython\\nsha = run(["git"])\\n'
+        cleaned = _sanitize_markdown_text(raw, strip_line_prefix=True)
+        self.assertFalse(cleaned.startswith("[src/main.py L42]"))
+        self.assertTrue(cleaned.startswith("Logic error."))
         self.assertNotIn("\\n", cleaned)
         self.assertIn("\n", cleaned)
         self.assertIn('run(["git"])', cleaned)

@@ -72,11 +72,13 @@ def pick_verdict(verdicts: List[ReviewVerdict]) -> ReviewVerdict:
     return best
 
 
-def _sanitize_markdown_text(text: str) -> str:
+def _sanitize_markdown_text(text: str, strip_line_prefix: bool = False) -> str:
     """Wraps raw unbackticked HTML tags in backticks and unescapes literal escaped characters."""
     import re
     if not text:
         return ""
+    if strip_line_prefix:
+        text = re.sub(r"^\[[^\]]+?\s+L\d+\]\s*", "", text)
     if "\\n" in text:
         text = text.replace("\\n", "\n")
     if '\\"' in text:
@@ -420,7 +422,7 @@ class ReviewService:
             {
                 "path": c.path,
                 "line": c.line,
-                "body": add_footer_hint(_sanitize_markdown_text(c.body)),
+                "body": add_footer_hint(_sanitize_markdown_text(c.body, strip_line_prefix=True)),
             }
             for c in result.comments
         ]
