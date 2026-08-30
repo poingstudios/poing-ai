@@ -40,8 +40,14 @@ def collect_thread_fingerprints(
         if not first:
             continue
         author_login = (first.get("author") or {}).get("login", "")
-        is_bot = "bot" in author_login.lower() or (
-            bot_login and author_login.lower() == bot_login.lower()
+        raw_body = first.get("body", "")
+
+        is_bot = (
+            (bot_login and author_login.lower() == bot_login.lower())
+            or "bot" in author_login.lower()
+            or "poing-ai" in author_login.lower()
+            or "👍 helpful · 👎 false positive" in raw_body
+            or "About Poing AI" in raw_body
         )
         if not is_bot:
             continue
