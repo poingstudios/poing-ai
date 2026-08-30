@@ -326,20 +326,21 @@ class FixService:
         if not test_cmd:
             return True, "No test command detected."
 
-        logger.info(f"Running test validation command: `{test_cmd}`...")
+        timeout = getattr(self.cfg, "TEST_TIMEOUT", 300)
+        logger.info(f"Running test validation command: `{test_cmd}` (timeout={timeout}s)...")
         try:
             res = subprocess.run(
                 test_cmd,
                 shell=True,
                 capture_output=True,
                 text=True,
-                timeout=60,
+                timeout=timeout,
                 cwd=str(self.root_dir),
             )
             output = (res.stdout or "") + "\n" + (res.stderr or "")
             return (res.returncode == 0), output.strip()
         except subprocess.TimeoutExpired:
-            return False, "Test execution timed out after 60s."
+            return False, f"Test execution timed out after {timeout}s."
         except Exception as e:
             return False, f"Test execution failed to launch: {e}"
 
@@ -407,6 +408,6 @@ class FixService:
                     body += f"- `{fix.file_path}`: {fix.explanation}\n"
                 body += f"\nCommit: `{commit_msg}`\n\n"
                 body += "✅ All validation tests passed!"
-                self.client.post_issue_comment(self.cfg.REPO, self.cfg.ISSUE_NUMBER, body)
+                self.client.add_comment(self.cfg.REPO, str(self.cfg.ISSUE_NUMBER), body)
         except Exception as e:
             logger.error(f"Failed to commit/push remote fixes: {e}")
