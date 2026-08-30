@@ -329,8 +329,25 @@ class FixService:
         timeout = getattr(self.cfg, "TEST_TIMEOUT", 60)
         logger.info(f"Running test validation command: `{test_cmd}` (timeout={timeout}s)...")
         child_env = os.environ.copy()
-        child_env.pop("MODE", None)
-        child_env.pop("TRIGGER_ACTION", None)
+        keys_to_clear = [
+            "MODE",
+            "TRIGGER_ACTION",
+            "PROVIDER",
+            "AI_PROVIDER",
+            "GEMINI_API_KEY",
+            "OPENAI_API_KEY",
+            "DEEPSEEK_API_KEY",
+            "ANTHROPIC_API_KEY",
+            "OLLAMA_BASE_URL",
+            "RAG_PROVIDER",
+            "GITHUB_TOKEN",
+            "PR_NUMBER",
+            "ISSUE_NUMBER",
+            "REPO",
+        ]
+        for k in list(child_env.keys()):
+            if k in keys_to_clear or k.startswith("INPUT_"):
+                child_env.pop(k, None)
         try:
             res = subprocess.run(
                 test_cmd,

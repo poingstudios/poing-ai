@@ -49,7 +49,7 @@ class AntigravityAgentProvider(BaseAIProvider):
     def _call_agent(self, prompt: str, agent_name: Optional[str] = None, timeout: int = 120) -> Optional[str]:
         target_agent = agent_name or self.default_agent
         self.last_used_model = target_agent
-        url = f"{BASE_INTERACTIONS_URL}?key={self.api_key}"
+        url = BASE_INTERACTIONS_URL
         headers = {
             "Content-Type": "application/json",
             "x-goog-api-key": self.api_key,

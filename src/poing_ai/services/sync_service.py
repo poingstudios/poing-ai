@@ -154,5 +154,5 @@ class SyncService:
 
 def compute_sync_metrics(updates: List[DependencyUpdate], sync_multiplier: float = 1.0) -> float:
     """Calculates the sync health score based on total package updates."""
-    score = len(updates) * sync_multiplier * unassigned_weight
+    score = len(updates) * sync_multiplier
     return float(score)
