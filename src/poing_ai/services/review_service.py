@@ -335,7 +335,7 @@ class ReviewService:
 
         verdict_label = VERDICT_MAP.get(result.verdict.value, str(result.verdict))
 
-        body_parts = [f"## 🤖 Poing AI\n"]
+        body_parts = [f"## [🤖 Poing AI](https://github.com/poingstudios/poing-ai)\n"]
 
         if meta_line:
             body_parts.append(meta_line)

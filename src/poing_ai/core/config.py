@@ -87,7 +87,7 @@ COMMENT_FOOTER_HINT = (
 
 TRIAGE_FOOTER = (
     "\n\n---\n"
-    "<sub>🤖 Triaged by [Poing AI](https://github.com/poingstudios/poing-ai)</sub>"
+    "<sub>🤖 Triaged by [Poing AI](https://github.com/poingstudios/poing-ai) · ⭐ Leave a star to support the project!</sub>"
 )
 
 REVIEW_FOOTER = (
@@ -95,6 +95,7 @@ REVIEW_FOOTER = (
     "<details>\n"
     "<summary>ℹ️ <b>About Poing AI</b></summary>\n<br>\n\n"
     "[Poing AI](https://github.com/poingstudios/poing-ai) is an open-source AI code reviewer and guidelines verifier for Godot, Unity, Unreal, and multi-platform repositories.\n\n"
+    "⭐ **Support:** If you find Poing AI helpful, consider starring the repo on [GitHub](https://github.com/poingstudios/poing-ai)!\n\n"
     "**Commands:**\n"
     "- Comment `/review` or `@poing-ai review` on this PR to run a fresh review *(requires `issue_comment` trigger in workflow)*.\n"
     "- Run locally in terminal: `poing --local`\n"
