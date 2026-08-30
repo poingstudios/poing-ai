@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from poing_ai.ai.factory import create_ai_provider
 from poing_ai.ai.gemini import GeminiProvider
@@ -15,6 +15,13 @@ from poing_ai.core.config import Config
 
 
 class TestProviderFactory(unittest.TestCase):
+    def setUp(self):
+        self._env_patch = patch.dict("os.environ", {}, clear=True)
+        self._env_patch.start()
+
+    def tearDown(self):
+        self._env_patch.stop()
+
     def test_explicit_ollama_provider(self):
         cfg = Config(provider="ollama", api_base="http://localhost:11434")
         provider = create_ai_provider(cfg)
