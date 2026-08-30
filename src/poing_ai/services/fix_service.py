@@ -168,16 +168,18 @@ class FixService:
 
         # In Local Mode or fallback: run review analysis to find issues in diff
         review_service = ReviewService(
-            cfg=self.cfg,
-            ai=self.ai,
-            client=self.client,
-            retriever=self.retriever,
-            engine=self.engine,
+            config=self.cfg,
+            ai_provider=self.ai,
+            github_client=self.client,
+            root_dir=self.root_dir,
         )
         diff_output = get_git_diff(
-            base_ref=self.cfg.BASE_REF or "HEAD~1",
+            base_ref=self.cfg.BASE_REF or "master",
             local=self.cfg.LOCAL,
-            staged_only=self.cfg.STAGED_ONLY,
+            staged=self.cfg.STAGED,
+            diff_target=self.cfg.DIFF_TARGET,
+            files=self.cfg.FILES,
+            root_dir=self.root_dir,
         )
         if not diff_output.strip():
             # Check all modified uncommitted files
