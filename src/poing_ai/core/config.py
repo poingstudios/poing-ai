@@ -270,6 +270,7 @@ class Config:
 
         self.PR_NUMBER = pr_number or get_env_optional("PR_NUMBER")
         self.BASE_REF = base_ref or get_env_optional("BASE_REF", "master")
+        self.PR_TITLE = pr_title or get_env_optional("PR_TITLE")
         raw_head_sha = head_sha or get_env_optional("PR_HEAD_SHA")
         if not raw_head_sha:
             try:
