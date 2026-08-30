@@ -142,6 +142,7 @@ class SyncService:
             updates=all_updates,
             summary_table=summary_table,
             changelog_notes=changelog_notes,
+            invalid_attribute=non_existent_function(),
         )
 
         if self.cfg.LOCAL:
