@@ -221,6 +221,8 @@ pip install poing-reviewer
 pipx run poing-reviewer --local
 ```
 
+> 💡 **Tip**: You can use either `poing-reviewer` or the shorthand aliases `prev` / `prv` (e.g. `prev --local`).
+
 ### 1. Running with Local Models (Ollama)
 
 You can run Poing Reviewer 100% locally with zero cloud API keys using **[Ollama](https://ollama.com/)** and models like **DeepSeek-R1**, **DeepSeek-Coder**, **Qwen 2.5 Coder**, or **Llama 3.3**:

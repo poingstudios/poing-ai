@@ -56,6 +56,8 @@ Changelog = "https://github.com/poingstudios/poing-reviewer/releases"
 
 [project.scripts]
 poing-reviewer = "poing_reviewer.cli:main"
+prev = "poing_reviewer.cli:main"
+prv = "poing_reviewer.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
