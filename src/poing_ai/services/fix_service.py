@@ -16,7 +16,7 @@ import difflib
 import os
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from poing_ai.ai.base import BaseAIProvider
 from poing_ai.ai.factory import create_ai_provider
@@ -150,12 +150,21 @@ class FixService:
         if findings_override and target_files_override:
             return findings_override, target_files_override
 
-        # On GitHub PR, check for comment triggers and unresolved review threads
-        if not self.cfg.LOCAL and self.client and self.cfg.REPO and self.cfg.ISSUE_NUMBER:
-            logger.info(f"Fetching review comments and threads for PR #{self.cfg.ISSUE_NUMBER}...")
-            comments = self.client.fetch_pr_comments(self.cfg.REPO, self.cfg.ISSUE_NUMBER)
-            findings = []
-            files = set()
+        findings: List[str] = []
+        files: Set[str] = set()
+
+        # 1. On GitHub PR, check existing reviews (tables & comments)
+        pr_num = self.cfg.ISSUE_NUMBER or self.cfg.PR_NUMBER or getattr(self.cfg, "NUMBER", None)
+        if self.client and self.cfg.REPO and pr_num:
+            logger.info(f"Fetching reviews and comments for PR #{pr_num}...")
+            reviews = self.client.fetch_existing_reviews(self.cfg.REPO, str(pr_num))
+            for r in reviews:
+                body = r.get("body", "")
+                parsed_f, parsed_files = self._extract_findings_from_markdown(body)
+                findings.extend(parsed_f)
+                files.update(parsed_files)
+
+            comments = self.client.fetch_pr_comments(self.cfg.REPO, str(pr_num))
             for c in comments:
                 path = c.get("path")
                 body = c.get("body", "")
@@ -166,13 +175,7 @@ class FixService:
             if findings:
                 return "\n".join(findings), list(files)
 
-        # In Local Mode or fallback: run review analysis to find issues in diff
-        review_service = ReviewService(
-            config=self.cfg,
-            ai_provider=self.ai,
-            github_client=self.client,
-            root_dir=self.root_dir,
-        )
+        # 2. In Local Mode, check uncommitted diff first
         diff_output = get_git_diff(
             base_ref=self.cfg.BASE_REF or "master",
             local=self.cfg.LOCAL,
@@ -181,31 +184,98 @@ class FixService:
             files=self.cfg.FILES,
             root_dir=self.root_dir,
         )
-        if not diff_output.strip():
-            # Check all modified uncommitted files
-            res = subprocess.run(["git", "diff", "--name-only"], capture_output=True, text=True)
-            files = [f.strip() for f in res.stdout.splitlines() if f.strip()]
-            if files:
-                return "Resolve all syntax, architecture, and lint issues in modified files.", files
-            return "", []
+        if diff_output.strip():
+            review_service = ReviewService(
+                config=self.cfg,
+                ai_provider=self.ai,
+                github_client=self.client,
+                root_dir=self.root_dir,
+            )
+            review_result = review_service.run()
+            if review_result:
+                for f in review_result.findings:
+                    if f.file:
+                        files.add(f.file)
+                        findings.append(f"- [{f.file}] {f.severity} {f.finding}")
+                for c in review_result.comments:
+                    if c.path:
+                        files.add(c.path)
+                        findings.append(f"- [{c.path}:{c.line}] {c.body}")
 
-        review_result = review_service.run()
-        if not review_result:
-            return "", []
+                if findings:
+                    return "\n".join(findings), list(files)
 
+        # 3. If working tree is clean, check if current branch has an open PR with review comments
+        pr_findings, pr_files = self._fetch_open_branch_pr_findings()
+        if pr_findings:
+            logger.info(f"Discovered {len(pr_findings)} review finding(s) from open branch Pull Request.")
+            return "\n".join(pr_findings), list(pr_files)
+
+        # 4. Check all modified uncommitted files
+        res = subprocess.run(["git", "diff", "--name-only"], capture_output=True, text=True)
+        git_files = [f.strip() for f in res.stdout.splitlines() if f.strip()]
+        if git_files:
+            return "Resolve all syntax, architecture, and lint issues in modified files.", git_files
+
+        return "", []
+
+    def _extract_findings_from_markdown(self, text: str) -> Tuple[List[str], Set[str]]:
+        """Extracts findings and target files from markdown review tables and comment lists."""
+        import re
         findings = []
         files = set()
-        for f in review_result.findings:
-            if f.file:
-                files.add(f.file)
-                findings.append(f"- [{f.file}] {f.severity} {f.finding}")
-        for c in review_result.comments:
-            if c.path:
-                files.add(c.path)
-                findings.append(f"- [{c.path}:{c.line}] {c.body}")
+        if not text:
+            return findings, files
 
-        findings_text = "\n".join(findings) if findings else review_result.summary
-        return findings_text, list(files)
+        # Markdown table: | Severity | File | Finding |
+        for line in text.splitlines():
+            if "|" in line and not line.startswith("|-") and "Severity" not in line and "Finding" not in line:
+                parts = [p.strip() for p in line.split("|") if p.strip()]
+                if len(parts) >= 3:
+                    severity = parts[0]
+                    file_path = parts[1].strip("`").strip()
+                    finding = parts[2].strip()
+                    if file_path and finding and any(s in severity for s in ("🔴", "🟡", "🟢", "error", "warning")):
+                        files.add(file_path)
+                        findings.append(f"- [{file_path}] {severity} {finding}")
+
+        # Inline list: - [`path`:line] finding
+        matches = re.findall(r"-\s*\[`?([^`:\]\n]+)`?(?::\d+)?\]\s*([^\n]+)", text)
+        for file_path, finding in matches:
+            f_clean = file_path.strip().strip("`")
+            if f_clean and f_clean not in files:
+                files.add(f_clean)
+                findings.append(f"- [{f_clean}] {finding.strip()}")
+
+        return findings, files
+
+    def _fetch_open_branch_pr_findings(self) -> Tuple[List[str], Set[str]]:
+        """Fetches reviews from the currently checked out branch's open PR via gh CLI."""
+        import json
+        findings = []
+        files = set()
+        try:
+            res = subprocess.run(
+                ["gh", "pr", "view", "--json", "reviews,comments"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if res.returncode == 0 and res.stdout.strip():
+                data = json.loads(res.stdout)
+                for r in data.get("reviews", []):
+                    body = r.get("body", "")
+                    f_list, f_files = self._extract_findings_from_markdown(body)
+                    findings.extend(f_list)
+                    files.update(f_files)
+                for c in data.get("comments", []):
+                    body = c.get("body", "")
+                    f_list, f_files = self._extract_findings_from_markdown(body)
+                    findings.extend(f_list)
+                    files.update(f_files)
+        except Exception as e:
+            logger.debug(f"Could not fetch PR findings via gh CLI: {e}")
+        return findings, files
 
     def _apply_patches(self, fixes: List[FileFix], target_files: Dict[str, str]) -> Tuple[List[FileFix], List[str]]:
         """Applies exact code snippet replacements to target files on disk."""
@@ -280,8 +350,8 @@ class FixService:
             return self.cfg.TEST_COMMAND
 
         # 2. Python projects
-        if (self.root_dir / "tests").exists() and (self.root_dir / "setup.py").exists() or (self.root_dir / "pyproject.toml").exists():
-            return "python3 -m unittest discover tests"
+        if (self.root_dir / "tests").exists() and ((self.root_dir / "setup.py").exists() or (self.root_dir / "pyproject.toml").exists()):
+            return "PYTHONPATH=src python3 -m unittest discover tests"
 
         # 3. Godot projects with gdlint
         if (self.root_dir / "project.godot").exists():

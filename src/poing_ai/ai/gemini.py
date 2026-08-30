@@ -150,6 +150,7 @@ class GeminiProvider(BaseAIProvider):
             "gemini-3.5-flash-lite",
             "gemma-4-31b-it",
         ]
+        self.last_used_model = self.models_to_try[0] if self.models_to_try else "gemini-3.7-flash"
 
     def _call_model(
         self,
@@ -158,6 +159,7 @@ class GeminiProvider(BaseAIProvider):
         generation_config: Optional[Dict[str, Any]] = None,
         response_schema: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
+        self.last_used_model = model_name
         url = GEMINI_API_URL.format(model=model_name)
 
         config: Dict[str, Any] = {
@@ -311,6 +313,7 @@ class GeminiProvider(BaseAIProvider):
             except ValueError:
                 priority = TriagePriority.MEDIUM
 
+            self.last_used_model = model
             return TriageResult(
                 labels=data.get("labels", []),
                 priority=priority,
@@ -333,6 +336,7 @@ class GeminiProvider(BaseAIProvider):
                 generation_config={"temperature": 0.2, "maxOutputTokens": 2048},
             )
             if raw:
+                self.last_used_model = model
                 return raw
         return None
 
@@ -347,7 +351,7 @@ class GeminiProvider(BaseAIProvider):
             raw = self._call_model(
                 prompt,
                 model,
-                schema=FIX_SCHEMA,
+                response_schema=FIX_SCHEMA,
                 generation_config={"temperature": 0.2},
             )
             if not raw:
@@ -366,6 +370,7 @@ class GeminiProvider(BaseAIProvider):
                 for f in data.get("fixes", [])
                 if f.get("file_path") and f.get("original_snippet") is not None and f.get("replacement_snippet") is not None
             ]
+            self.last_used_model = model
             return FixResult(
                 summary=data.get("summary", ""),
                 fixes=fixes,

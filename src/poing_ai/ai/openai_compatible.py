@@ -64,6 +64,7 @@ class OpenAICompatibleProvider(BaseAIProvider):
             "deepseek-chat",
             "deepseek-reasoner",
         ]
+        self.last_used_model = self.models_to_try[0] if self.models_to_try else "gpt-4o-mini"
 
     def _call_model(
         self,
@@ -74,6 +75,7 @@ class OpenAICompatibleProvider(BaseAIProvider):
         max_tokens: int = 4096,
         require_json: bool = True,
     ) -> Optional[str]:
+        self.last_used_model = model_name
         url = f"{self.base_url}/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -227,6 +229,7 @@ class OpenAICompatibleProvider(BaseAIProvider):
             except ValueError:
                 priority = TriagePriority.MEDIUM
 
+            self.last_used_model = model
             return TriageResult(
                 labels=data.get("labels", []),
                 priority=priority,
@@ -252,6 +255,7 @@ class OpenAICompatibleProvider(BaseAIProvider):
                 require_json=False,
             )
             if raw:
+                self.last_used_model = model
                 return sanitize_ai_json_output(raw)
         return None
 
@@ -288,6 +292,7 @@ class OpenAICompatibleProvider(BaseAIProvider):
                 for f in data.get("fixes", [])
                 if f.get("file_path") and f.get("original_snippet") is not None and f.get("replacement_snippet") is not None
             ]
+            self.last_used_model = model
             return FixResult(
                 summary=data.get("summary", ""),
                 fixes=fixes,

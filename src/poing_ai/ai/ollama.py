@@ -72,6 +72,7 @@ class OllamaProvider(BaseAIProvider):
         self.base_url = raw_base.rstrip("/").removesuffix("/v1").removesuffix("/api")
         self._custom_models = models_to_try is not None
         self.models_to_try = models_to_try or DEFAULT_OLLAMA_MODELS
+        self.last_used_model = self.models_to_try[0] if self.models_to_try else DEFAULT_OLLAMA_MODELS[0]
 
     def is_available(self) -> bool:
         """Checks if the local Ollama daemon is reachable."""
@@ -123,6 +124,7 @@ class OllamaProvider(BaseAIProvider):
         temperature: float = 0.2,
         require_json: bool = True,
     ) -> Optional[str]:
+        self.last_used_model = model_name
         url = f"{self.base_url}/api/chat"
         payload: Dict[str, Any] = {
             "model": model_name,
@@ -266,6 +268,7 @@ class OllamaProvider(BaseAIProvider):
             except ValueError:
                 priority = TriagePriority.MEDIUM
 
+            self.last_used_model = model
             return TriageResult(
                 labels=data.get("labels", []),
                 priority=priority,
@@ -290,6 +293,7 @@ class OllamaProvider(BaseAIProvider):
                 require_json=False,
             )
             if raw:
+                self.last_used_model = model
                 return sanitize_ai_json_output(raw)
         return None
 
@@ -325,6 +329,7 @@ class OllamaProvider(BaseAIProvider):
                 for f in data.get("fixes", [])
                 if f.get("file_path") and f.get("original_snippet") is not None and f.get("replacement_snippet") is not None
             ]
+            self.last_used_model = model
             return FixResult(
                 summary=data.get("summary", ""),
                 fixes=fixes,
