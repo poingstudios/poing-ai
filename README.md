@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/poing-ai.svg)](https://pypi.org/project/poing-ai/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/poing-ai.svg)](https://pypi.org/project/poing-ai/)
-[![GitHub Actions Marketplace](https://img.shields.io/badge/Marketplace-Poing%20Reviewer-blue?logo=github)](https://github.com/marketplace/actions/poing-ai)
+[![GitHub Actions Marketplace](https://img.shields.io/badge/Marketplace-Poing%20AI-blue?logo=github)](https://github.com/marketplace/actions/poing-ai)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 **Poing AI** is an AI-powered code review, issue triage, and multi-platform dependency automation bot powered by Google Gemini. Tailored for game engine plugins (**Godot**, **Unity**, **Unreal**) and multi-platform native mobile ecosystems (**Android**, **iOS**, **C#**, **C++**, **Rust**, **Python**).
