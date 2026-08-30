@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from poing_ai.ai.rag.base import BaseEmbedder, BaseRetriever, RetrievedDocument
+from poing_ai.ai.rag.markdown_parser import parse_markdown_with_breadcrumbs
 from poing_ai.core.logging import get_logger
 
 logger = get_logger("ai.rag.vector")
@@ -67,16 +68,15 @@ class VectorRAGRetriever(BaseRetriever):
                 content = path.read_text(encoding="utf-8", errors="replace").strip()
                 if not content:
                     continue
-                # Chunk content by sections or length (up to 2000 chars per chunk)
-                chunks = [content[i : i + 2000] for i in range(0, len(content), 1800)]
                 rel_source = str(path.relative_to(self.root_dir) if path.is_relative_to(self.root_dir) else path)
+                sections = parse_markdown_with_breadcrumbs(rel_source, content)
 
-                for idx, chunk in enumerate(chunks):
-                    emb = self.embedder.embed_text(chunk)
+                for sec in sections:
+                    emb = self.embedder.embed_text(sec.content)
                     if emb:
                         doc = RetrievedDocument(
-                            source=f"{rel_source}#chunk{idx+1}",
-                            content=chunk,
+                            source=sec.breadcrumb,
+                            content=sec.content,
                             score=1.0,
                         )
                         self._index.append((doc, emb))

@@ -23,6 +23,7 @@ if str(src_dir) not in sys.path:
     sys.path.insert(0, str(src_dir))
 
 __path__ = [str(src_pkg_dir)]
+__version__ = "1.0.1"
 
 from poing_ai.cli import main
 

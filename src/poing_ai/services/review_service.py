@@ -28,6 +28,7 @@ from poing_ai.ai.false_positive import (
 )
 from poing_ai.ai.prompts.review import build_review_prompt
 from poing_ai.ai.rag.factory import create_retriever
+from poing_ai.ai.rag.query_builder import build_diff_rag_query
 from poing_ai.ai.rag.symbol_impact import SymbolImpactRetriever
 from poing_ai.ai.rag.test_pairing import TestPairingRetriever
 from poing_ai.ai.thread_resolver import resolve_fixed_threads
@@ -159,12 +160,24 @@ class ReviewService:
                         summary="PR already reviewed.",
                     )
 
-        # Context & Guidelines
-        guidelines_docs = self.retriever.retrieve(query="guidelines coding standards", top_k=3)
+        # Diff Batching
+        file_blocks = split_diff_by_file(diff)
+        all_modified_files: Set[str] = set()
+        for fb in file_blocks:
+            lines = fb.splitlines()
+            if lines and lines[0].startswith("diff --git"):
+                parts = lines[0].split()
+                if len(parts) >= 4:
+                    all_modified_files.add(parts[3].lstrip("b/"))
+
+        # Context & Guidelines (Dynamic Diff-Aware Query)
+        rag_query = build_diff_rag_query(all_modified_files, diff_text=diff)
+        logger.info(f"Dynamic RAG query: '{rag_query}'")
+        guidelines_docs = self.retriever.retrieve(query=rag_query, top_k=4)
         guidelines_text = ""
         if guidelines_docs:
-            guidelines_text = "## Repository Guidelines\n" + "\n\n".join(
-                f"### {doc.source}\n{doc.content}" for doc in guidelines_docs
+            guidelines_text = "## Repository Guidelines & Standards\n" + "\n\n".join(
+                doc.content for doc in guidelines_docs
             )
 
         engine_analyzer = detect_engine(
@@ -179,8 +192,6 @@ class ReviewService:
         if not self.cfg.LOCAL and self.cfg.GITHUB_TOKEN:
             verified_actions = self.client.extract_and_verify_actions(diff)
 
-        # Diff Batching
-        file_blocks = split_diff_by_file(diff)
         effective_max_chars = get_model_max_chars(self.cfg.PRIMARY_MODEL, self.cfg.MAX_CHARS)
         batches = split_batches(file_blocks, effective_max_chars)[:self.cfg.MAX_BATCHES]
         total_batches = len(batches)
