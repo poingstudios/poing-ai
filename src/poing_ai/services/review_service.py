@@ -72,9 +72,17 @@ def pick_verdict(verdicts: List[ReviewVerdict]) -> ReviewVerdict:
     return best
 
 
-def _sanitize_markdown_text(text: str) -> str:
-    """Wraps raw unbackticked HTML tags in backticks to prevent unintended Markdown rendering."""
+def _sanitize_markdown_text(text: str, strip_line_prefix: bool = False) -> str:
+    """Wraps raw unbackticked HTML tags in backticks and unescapes literal escaped characters."""
     import re
+    if not text:
+        return ""
+    if strip_line_prefix:
+        text = re.sub(r"^\[[^\]]+?\s+L\d+\]\s*", "", text)
+    if "\\n" in text:
+        text = text.replace("\\n", "\n")
+    if '\\"' in text:
+        text = text.replace('\\"', '"')
     return re.sub(r"(?<!`)(</?[a-zA-Z][a-zA-Z0-9_-]*(?:\s+[^>]*)?>)(?!`)", r"`\1`", text)
 
 
@@ -327,7 +335,7 @@ class ReviewService:
 
         verdict_label = VERDICT_MAP.get(result.verdict.value, str(result.verdict))
 
-        body_parts = [f"## 🤖 Poing AI\n"]
+        body_parts = [f"## [🤖 Poing AI](https://github.com/poingstudios/poing-ai)\n"]
 
         if meta_line:
             body_parts.append(meta_line)
@@ -414,7 +422,7 @@ class ReviewService:
             {
                 "path": c.path,
                 "line": c.line,
-                "body": add_footer_hint(c.body),
+                "body": add_footer_hint(_sanitize_markdown_text(c.body, strip_line_prefix=True)),
             }
             for c in result.comments
         ]

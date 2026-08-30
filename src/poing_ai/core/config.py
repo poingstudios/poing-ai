@@ -87,7 +87,7 @@ COMMENT_FOOTER_HINT = (
 
 TRIAGE_FOOTER = (
     "\n\n---\n"
-    "<sub>🤖 Triaged by [Poing AI](https://github.com/poingstudios/poing-ai)</sub>"
+    "<sub>🤖 Triaged by [Poing AI](https://github.com/poingstudios/poing-ai) · ⭐ Leave a star to support the project!</sub>"
 )
 
 REVIEW_FOOTER = (
@@ -95,6 +95,7 @@ REVIEW_FOOTER = (
     "<details>\n"
     "<summary>ℹ️ <b>About Poing AI</b></summary>\n<br>\n\n"
     "[Poing AI](https://github.com/poingstudios/poing-ai) is an open-source AI code reviewer and guidelines verifier for Godot, Unity, Unreal, and multi-platform repositories.\n\n"
+    "⭐ **Support:** If you find Poing AI helpful, consider starring the repo on [GitHub](https://github.com/poingstudios/poing-ai)!\n\n"
     "**Commands:**\n"
     "- Comment `/review` or `@poing-ai review` on this PR to run a fresh review *(requires `issue_comment` trigger in workflow)*.\n"
     "- Run locally in terminal: `poing --local`\n"
@@ -271,7 +272,22 @@ class Config:
         self.PR_NUMBER = pr_number or get_env_optional("PR_NUMBER")
         self.BASE_REF = base_ref or get_env_optional("BASE_REF", "master")
         self.PR_TITLE = pr_title or get_env_optional("PR_TITLE")
-        self.HEAD_SHA = head_sha or get_env_optional("PR_HEAD_SHA") or get_env_optional("GITHUB_SHA")
+        raw_head_sha = head_sha or get_env_optional("PR_HEAD_SHA")
+        if not raw_head_sha:
+            try:
+                import subprocess
+                proc = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=5,
+                )
+                if proc.returncode == 0 and proc.stdout.strip():
+                    raw_head_sha = proc.stdout.strip()
+            except Exception:
+                pass
+        self.HEAD_SHA = raw_head_sha or get_env_optional("GITHUB_SHA")
 
         self.ISSUE_NUMBER = issue_number or get_env_optional("ISSUE_NUMBER")
         self.ISSUE_TITLE = issue_title or get_env_optional("ISSUE_TITLE")
