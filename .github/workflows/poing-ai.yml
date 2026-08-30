@@ -10,13 +10,14 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Mode: review or triage'
+        description: 'Mode: review, triage, or fix'
         required: true
         default: 'review'
         type: choice
         options:
           - review
           - triage
+          - fix
       number:
         description: 'PR or Issue number'
         required: true
@@ -48,13 +49,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-
-      - name: Checkout PR (workflow_dispatch or comment trigger)
-        if: github.event_name == 'workflow_dispatch' || github.event_name == 'issue_comment'
-        run: gh pr checkout "$PR_NUMBER"
-        env:
-          PR_NUMBER: ${{ inputs.number || github.event.issue.number }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: 3. Run Reviewer (Self-Dogfooding)
         uses: ./
@@ -91,3 +85,37 @@ jobs:
           mode: triage
           github-token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+
+  fix:
+    name: Auto-Fix
+    if: >
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && (contains(github.event.comment.body, '/fix') || contains(github.event.comment.body, '@poing-ai fix') || contains(github.event.comment.body, '@poing-ai[bot] fix'))) ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'fix')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: 1. Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+        continue-on-error: true
+
+      - name: 2. Checkout Code
+        uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: 3. Run Auto-Fixer (Self-Dogfooding)
+        uses: ./
+        with:
+          mode: fix
+          provider: antigravity
+          number: ${{ inputs.number || github.event.issue.number }}
+          github-token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+

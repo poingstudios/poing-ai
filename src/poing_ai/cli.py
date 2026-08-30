@@ -29,6 +29,7 @@ except Exception:
 
 from poing_ai.core.config import Config
 from poing_ai.core.logging import get_logger
+from poing_ai.services.fix_service import FixService
 from poing_ai.services.review_service import ReviewService
 from poing_ai.services.sync_service import SyncService
 from poing_ai.services.triage_service import TriageService
@@ -49,9 +50,14 @@ def create_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--mode",
-        choices=["review", "triage", "sync", "dependencies"],
+        choices=["review", "triage", "sync", "dependencies", "fix"],
         default=None,
-        help="Operation mode (review, triage, or sync)",
+        help="Operation mode (review, triage, sync, or fix)",
+    )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Automatically repair detected bugs, lint violations, and review findings",
     )
     parser.add_argument(
         "--local",
@@ -66,9 +72,9 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-p",
         "--provider",
-        choices=["auto", "gemini", "ollama", "openai", "openai-compatible", "deepseek", "groq", "openrouter"],
+        choices=["auto", "gemini", "antigravity", "ollama", "openai", "openai-compatible", "deepseek", "groq", "openrouter"],
         default=None,
-        help="AI provider backend (gemini, ollama, openai, deepseek, or auto)",
+        help="AI provider backend (gemini, antigravity, ollama, openai, deepseek, or auto)",
     )
     parser.add_argument(
         "-m",
@@ -194,10 +200,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         fail_on_changes=args.fail_on_changes,
     )
 
+    if args.fix:
+        cfg.MODE = "fix"
+
     mode = cfg.MODE
     logger.info(f"Running Poing AI in '{mode}' mode (local={cfg.LOCAL}, provider={cfg.PROVIDER}, dry_run={cfg.DRY_RUN})...")
 
     try:
+        if mode == "fix":
+            service = FixService(cfg)
+            result = service.run()
+            return 0 if result is not None else 1
+
         if mode == "triage":
             service = TriageService(cfg)
             result = service.run()

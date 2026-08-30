@@ -22,6 +22,8 @@ from poing_ai.ai.base import BaseAIProvider
 from poing_ai.ai.openai_compatible import sanitize_ai_json_output
 from poing_ai.core.logging import get_logger
 from poing_ai.core.models import (
+    FileFix,
+    FixResult,
     ReviewComment,
     ReviewFinding,
     ReviewResult,
@@ -70,6 +72,7 @@ class OllamaProvider(BaseAIProvider):
         self.base_url = raw_base.rstrip("/").removesuffix("/v1").removesuffix("/api")
         self._custom_models = models_to_try is not None
         self.models_to_try = models_to_try or DEFAULT_OLLAMA_MODELS
+        self.last_used_model = self.models_to_try[0] if self.models_to_try else DEFAULT_OLLAMA_MODELS[0]
 
     def is_available(self) -> bool:
         """Checks if the local Ollama daemon is reachable."""
@@ -121,6 +124,7 @@ class OllamaProvider(BaseAIProvider):
         temperature: float = 0.2,
         require_json: bool = True,
     ) -> Optional[str]:
+        self.last_used_model = model_name
         url = f"{self.base_url}/api/chat"
         payload: Dict[str, Any] = {
             "model": model_name,
@@ -264,6 +268,7 @@ class OllamaProvider(BaseAIProvider):
             except ValueError:
                 priority = TriagePriority.MEDIUM
 
+            self.last_used_model = model
             return TriageResult(
                 labels=data.get("labels", []),
                 priority=priority,
@@ -288,5 +293,47 @@ class OllamaProvider(BaseAIProvider):
                 require_json=False,
             )
             if raw:
+                self.last_used_model = model
                 return sanitize_ai_json_output(raw)
+        return None
+
+    def generate_fix(
+        self,
+        prompt: str,
+        model_name: Optional[str] = None,
+    ) -> Optional[FixResult]:
+        models = self._resolve_models_to_try(model_name)
+        for model in models:
+            logger.info(f"Generating automated fix using Ollama model {model}...")
+            raw = self._call_model(
+                prompt=prompt,
+                model_name=model,
+                system_prompt="You are an expert autonomous software engineer. Return a JSON object with 'summary' and 'fixes' containing 'file_path', 'explanation', 'original_snippet', and 'replacement_snippet'.",
+                temperature=0.1,
+                require_json=True,
+            )
+            if not raw:
+                continue
+
+            data = self._parse_json(raw)
+            if not data or "fixes" not in data:
+                continue
+
+            fixes = [
+                FileFix(
+                    file_path=f.get("file_path", ""),
+                    explanation=f.get("explanation", ""),
+                    original_snippet=f.get("original_snippet", ""),
+                    replacement_snippet=f.get("replacement_snippet", ""),
+                )
+                for f in data.get("fixes", [])
+                if f.get("file_path") and f.get("original_snippet") is not None and f.get("replacement_snippet") is not None
+            ]
+            self.last_used_model = model
+            return FixResult(
+                summary=data.get("summary", ""),
+                fixes=fixes,
+                model=self.last_used_model,
+                tests_passed=True,
+            )
         return None

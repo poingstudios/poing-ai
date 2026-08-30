@@ -9,7 +9,9 @@ You can interact with Poing AI directly from GitHub pull request comment threads
 | Command | Description | Example |
 |---|---|---|
 | `/review` | Triggers an immediate re-review of the pull request | `/review` |
+| `/fix` | Triggers autonomous code repair: applies fixes, runs tests, and pushes commits | `/fix` |
 | `@poing-ai review` | Alternative mention format to trigger a re-review | `@poing-ai review` |
+| `@poing-ai fix` | Alternative mention format to trigger an auto-fix | `@poing-ai fix` |
 
 ---
 

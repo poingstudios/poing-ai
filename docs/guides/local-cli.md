@@ -24,7 +24,22 @@ poing --local --format json
 
 ---
 
-### 2. Issue Triage
+### 2. Autonomous Code Repair (`--fix`)
+
+```bash
+# Automatically repair bugs with Google Antigravity Agent
+poing --local --fix --provider antigravity
+
+# Automatically repair bugs using local Ollama (100% offline)
+poing --local --fix --provider ollama
+
+# Repair bugs using Gemini Flash
+poing --local --fix --provider gemini --model gemini-3.7-flash
+```
+
+---
+
+### 3. Issue Triage
 
 ```bash
 poing --mode triage --local \

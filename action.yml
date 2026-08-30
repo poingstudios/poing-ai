@@ -7,7 +7,7 @@ branding:
 
 inputs:
   mode:
-    description: 'Operation mode: review, triage, or sync'
+    description: 'Operation mode: review, triage, sync, or fix'
     required: false
     default: 'review'
   github-token:
@@ -35,7 +35,7 @@ inputs:
     required: false
     default: ''
   provider:
-    description: 'AI provider: gemini, openai, deepseek, ollama, groq, openrouter, or auto'
+    description: 'AI provider: gemini, antigravity, openai, deepseek, ollama, groq, openrouter, or auto'
     required: false
     default: 'gemini'
   api-key:

@@ -31,6 +31,7 @@ class TestServer(unittest.TestCase):
         self.assertEqual(response.json(), {"status": "ok", "service": "poing-ai"})
 
     @unittest.skipUnless(HAS_FASTAPI, "FastAPI not installed in local environment")
+    @patch("poing_ai.server.app._handle_pull_request")
     @patch("poing_ai.server.app.get_installation_token")
     @patch.dict(
         "os.environ",
@@ -41,7 +42,7 @@ class TestServer(unittest.TestCase):
             "GEMINI_API_KEY": "gemini_mock",
         },
     )
-    def test_webhook_pull_request(self, mock_get_token):
+    def test_webhook_pull_request(self, mock_get_token, mock_handle_pr):
         client = TestClient(app)
         mock_get_token.return_value = "ghs_installation_token_123"
         payload = {
@@ -68,6 +69,7 @@ class TestServer(unittest.TestCase):
             },
         )
         self.assertEqual(response.status_code, 202)
+        mock_handle_pr.assert_called_once()
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@
 
 from typing import Optional
 
+from poing_ai.ai.antigravity import AntigravityAgentProvider
 from poing_ai.ai.base import BaseAIProvider
 from poing_ai.ai.gemini import GeminiProvider
 from poing_ai.ai.ollama import OllamaProvider
@@ -27,6 +28,17 @@ logger = get_logger("ai.factory")
 def create_ai_provider(config: Config) -> BaseAIProvider:
     """Instantiates the appropriate AI provider based on configuration and environment."""
     provider_name = (config.PROVIDER or "").lower().strip()
+
+    if provider_name in ("antigravity", "antigravity-agent", "agent") or (
+        config.PRIMARY_MODEL and "antigravity" in config.PRIMARY_MODEL.lower()
+    ):
+        api_key = config.GEMINI_API_KEY or config.API_KEY or ""
+        agent_name = config.PRIMARY_MODEL if (config.PRIMARY_MODEL and "antigravity" in config.PRIMARY_MODEL.lower()) else "antigravity-preview-05-2026"
+        logger.info(f"Using Google Antigravity Managed Agent ({agent_name})")
+        return AntigravityAgentProvider(
+            api_key=api_key,
+            default_agent=agent_name,
+        )
 
     if provider_name == "ollama":
         base_url = config.API_BASE or "http://localhost:11434"

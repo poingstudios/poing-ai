@@ -12,12 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Poing AI - AI-powered Code Review, Triage, and Dependency Automation."""
+from setuptools import find_packages, setup
 
-import warnings
-
-# Suppress harmless urllib3 LibreSSL warning on macOS default Python builds
-warnings.filterwarnings("ignore", message=".*urllib3 v2 only supports OpenSSL.*")
-warnings.filterwarnings("ignore", message=".*NotOpenSSLWarning.*")
-
-__version__ = "1.1.0"
+setup(
+    name="poing-ai",
+    version="1.1.0",
+    package_dir={"": "src"},
+    packages=find_packages(where="src"),
+    install_requires=[
+        "requests>=2.31.0",
+    ],
+    entry_points={
+        "console_scripts": [
+            "poing=poing_ai.cli:main",
+            "poing-ai=poing_ai.cli:main",
+        ],
+    },
+)

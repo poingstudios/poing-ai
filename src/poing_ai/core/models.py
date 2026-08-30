@@ -116,3 +116,37 @@ class SyncSummary:
     updates: List[DependencyUpdate] = field(default_factory=list)
     summary_table: str = ""
     changelog_notes: str = ""
+
+
+@dataclass
+class FileFix:
+    file_path: str
+    explanation: str
+    original_snippet: str
+    replacement_snippet: str
+
+    def to_dict(self) -> Dict[str, str]:
+        return {
+            "file_path": self.file_path,
+            "explanation": self.explanation,
+            "original_snippet": self.original_snippet,
+            "replacement_snippet": self.replacement_snippet,
+        }
+
+
+@dataclass
+class FixResult:
+    summary: str = ""
+    fixes: List[FileFix] = field(default_factory=list)
+    model: str = ""
+    tests_passed: bool = True
+    test_output: str = ""
+
+    def to_dict(self) -> Dict[str, object]:
+        return {
+            "summary": self.summary,
+            "fixes": [f.to_dict() for f in self.fixes],
+            "model": self.model,
+            "tests_passed": self.tests_passed,
+            "test_output": self.test_output,
+        }

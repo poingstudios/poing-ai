@@ -145,11 +145,8 @@ class SyncService:
         )
 
         if self.cfg.LOCAL:
-            print("\n" + "=" * 60)
-            print("DEPENDENCY SYNC SUMMARY")
-            print(summary_table)
-            print("\n--- AI RELEASE NOTES ---")
-            print(changelog_notes)
-            print("=" * 60 + "\n")
+            logger.info("Dependency sync completed with updates:")
+            for u in all_updates:
+                logger.info(f" - [{u.platform}] {u.dependency}: {u.old_version} -> {u.new_version} ({u.update_type})")
 
         return summary

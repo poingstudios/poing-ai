@@ -111,11 +111,14 @@ Run code reviews directly on your local git changes before pushing:
 # Review uncommitted changes (uses free Gemini or local Ollama)
 poing --local
 
+# Automatically fix detected bugs & lint violations with Google Antigravity Agent
+poing --local --fix --provider antigravity
+
+# Automatically fix issues using local Ollama (100% offline)
+poing --local --fix --provider ollama
+
 # Review staged changes only
 poing --local --staged
-
-# Run 100% offline using a local Ollama model
-poing --local --provider ollama --model deepseek-r1:latest
 ```
 
 ---
@@ -127,7 +130,7 @@ Click **Copy** below and paste it directly into **Cursor**, **ChatGPT**, **Claud
 ```text
 Please set up Poing AI in this repository:
 1. Inspect this repository to detect the project type and game engine (Godot, Unity, Unreal, or multi-platform native).
-2. Create `.github/workflows/poing-ai.yml` using `poingstudios/poing-ai@v1` with `pull_request_target` (opened, ready_for_review) and `issue_comment` (/review) triggers.
+2. Create `.github/workflows/poing-ai.yml` using `poingstudios/poing-ai@v1` with `pull_request_target` (opened, ready_for_review) and `issue_comment` (/review, /fix) triggers.
 3. (Optional) Create `.github/poing.json` tailored to this project's architecture and guidelines directories.
 4. Remind me to configure the `GEMINI_API_KEY` repository secret (free from https://aistudio.google.com/).
 5. Install the local CLI via `pip install --upgrade poing-ai` and run `poing --local` to verify.
@@ -144,7 +147,9 @@ Interact with Poing AI inside GitHub Pull Requests:
 | Command | Description |
 |---|---|
 | `/review` | Triggers a fresh, immediate code review |
+| `/fix` | Triggers autonomous code repair: applies patches, runs tests, and pushes commits to the PR |
 | `@poing-ai review` | Alternative mention to request a review |
+| `@poing-ai fix` | Alternative mention to request an auto-fix |
 
 ---
 

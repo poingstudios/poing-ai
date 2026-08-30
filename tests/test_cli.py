@@ -25,24 +25,27 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(args.output, "json")
         self.assertTrue(args.fail_on_changes)
 
+    @patch.dict("os.environ", {}, clear=True)
     @patch("poing_ai.services.review_service.ReviewService.run")
     def test_main_review_success(self, mock_review_run):
         mock_review_run.return_value = ReviewResult(
             verdict=ReviewVerdict.APPROVED,
             summary="Clean changes",
         )
-        exit_code = main(["--local", "--provider", "gemini"])
+        exit_code = main(["--mode", "review", "--local", "--provider", "gemini"])
         self.assertEqual(exit_code, 0)
 
+    @patch.dict("os.environ", {}, clear=True)
     @patch("poing_ai.services.review_service.ReviewService.run")
     def test_main_fail_on_changes(self, mock_review_run):
         mock_review_run.return_value = ReviewResult(
             verdict=ReviewVerdict.CHANGES_REQUESTED,
             summary="Bug found",
         )
-        exit_code = main(["--local", "--fail-on-changes"])
+        exit_code = main(["--mode", "review", "--local", "--fail-on-changes"])
         self.assertEqual(exit_code, 1)
 
+    @patch.dict("os.environ", {}, clear=True)
     @patch("poing_ai.services.triage_service.TriageService.run")
     def test_main_triage(self, mock_triage_run):
         mock_triage_run.return_value = TriageResult(

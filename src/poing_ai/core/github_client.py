@@ -102,6 +102,21 @@ class GitHubClient:
             logger.debug(f"Failed to fetch existing reviews: {e}")
         return []
 
+    def fetch_pr_comments(self, repo: str, pr_number: str) -> List[Dict[str, Any]]:
+        if not self.token or not repo or not pr_number:
+            return []
+        try:
+            resp = requests.get(
+                f"{BASE_URL}/repos/{repo}/pulls/{pr_number}/comments",
+                headers=self._headers(),
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                return resp.json()
+        except Exception as e:
+            logger.debug(f"Failed to fetch PR comments: {e}")
+        return []
+
     def dismiss_review(self, repo: str, pr_number: str, review_id: int, message: str) -> bool:
         try:
             resp = requests.put(

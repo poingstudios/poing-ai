@@ -4,23 +4,24 @@ This file provides architectural context, coding guidelines, and execution proto
 
 ## Purpose
 
-Poing AI is an enterprise-grade AI bot, CLI tool, and GitHub Action powered by LLMs (Gemini, Ollama, OpenAI-compatible) that automates:
+Poing AI is an enterprise-grade AI bot, CLI tool, and GitHub Action powered by LLMs (Gemini, Antigravity, Ollama, OpenAI-compatible) that automates:
 1. **Code Review**: Analyzes pull request diffs, checks repository guidelines, detects game-engine violations (Godot, Unity, Unreal), eliminates false positives, and posts structured reviews with line-level comments.
-2. **Issue & PR Triage**: Classifies issues into categories, assigns priority, checks duplicates, and auto-manages labels.
-3. **Dependency Automation**: Scans upstream datasources (Google Maven, Maven Central, SPM GitHub, Godot releases, Unity UPM, NuGet), updates manifest pins, and generates AI release changelog summaries.
+2. **Autonomous Code Repair (`mode: fix`)**: Automatically repairs detected bugs and review comments using Google Antigravity Managed Agent or Gemini/Ollama, applies drop-in patches, and executes test suites (`unittest`, `gdlint`, `npm test`) with self-healing retries.
+3. **Issue & PR Triage**: Classifies issues into categories, assigns priority, checks duplicates, and auto-manages labels.
+4. **Dependency Automation**: Scans upstream datasources (Google Maven, Maven Central, SPM GitHub, Godot releases, Unity UPM, NuGet), updates manifest pins, and generates AI release changelog summaries.
 
 ## Repository Layout
 
 ```
 src/poing_ai/
 ├── core/                  # Models, Config, Git, GitHub client, Logging
-├── ai/                    # BaseAIProvider, GeminiProvider, False-Positive Filters, Thread Resolver
+├── ai/                    # BaseAIProvider, AntigravityProvider, GeminiProvider, False-Positive Filters, Thread Resolver
 │   ├── rag/               # BaseRetriever, LocalFileRetriever, Embedders, Vector RAG
-│   └── prompts/           # Review, Triage, and Changelog prompt templates
+│   └── prompts/           # Review, Fix, Triage, and Changelog prompt templates
 ├── engines/               # Godot, Unity, Unreal, and Generic ecosystem analyzers
 ├── datasources/           # Maven, SPM, Godot Releases, UPM, NuGet fetchers
 ├── parsers/               # GDScript config, Gradle, Swift Package, Unity UPM parsers
-├── services/              # ReviewService, TriageService, SyncService
+├── services/              # ReviewService, FixService, TriageService, SyncService
 ├── server/                # GitHub App webhook receiver (FastAPI/Uvicorn)
 ├── cli.py                 # CLI interface
 └── __main__.py            # Module entrypoint
@@ -30,15 +31,18 @@ src/poing_ai/
 
 | File / Module | Responsibility |
 | :--- | :--- |
-| `src/poing_ai/cli.py` | Argument parsing (`--mode`, `--local`, `--model`, `--provider`, etc.) and entrypoint dispatcher |
+| `src/poing_ai/cli.py` | Argument parsing (`--mode`, `--fix`, `--local`, `--model`, `--provider`, etc.) and entrypoint dispatcher |
 | `src/poing_ai/core/config.py` | Central `Config` object, environment variable mappings, `poing.json` discovery |
 | `src/poing_ai/core/git.py` | Git diff extraction (`get_git_diff`), batch splitting, hunk annotation `[file L#]` |
 | `src/poing_ai/core/github_client.py` | REST & GraphQL GitHub API client (reviews, comments, threads, reactions, labels) |
-| `src/poing_ai/core/models.py` | Dataclasses & Enums (`ReviewResult`, `ReviewVerdict`, `TriageResult`, `DependencyUpdate`) |
-| `src/poing_ai/ai/base.py` | `BaseAIProvider` abstract class (`generate_review`, `generate_triage`, `generate_changelog_summary`) |
+| `src/poing_ai/core/models.py` | Dataclasses & Enums (`ReviewResult`, `FixResult`, `FileFix`, `TriageResult`, `DependencyUpdate`) |
+| `src/poing_ai/ai/base.py` | `BaseAIProvider` abstract class (`generate_review`, `generate_fix`, `generate_triage`, `generate_changelog_summary`) |
+| `src/poing_ai/ai/antigravity.py` | Google Antigravity Managed Agent provider (`POST /v1beta/interactions`, `antigravity-preview-05-2026`) |
 | `src/poing_ai/ai/gemini.py` | Google Gemini REST API implementation with structured JSON schema output |
+| `src/poing_ai/ai/prompts/fix.py` | Prompt builder enforcing drop-in snippet replacements and test validation |
 | `src/poing_ai/ai/rag/` | `LocalFileRetriever` (markdown scanner), `GeminiEmbedder`, `VectorRAGRetriever` |
 | `src/poing_ai/services/review_service.py` | End-to-end review lifecycle: git diff, RAG guidelines, engine rules, AI batching, false-positive filtering, local display / GitHub submission |
+| `src/poing_ai/services/fix_service.py` | Autonomous code repair engine: reads findings, generates patches, executes test runner, self-heals failures, commits to PR or modifies local tree |
 | `src/poing_ai/services/triage_service.py` | Issue & PR triage categorization and label synchronization |
 | `src/poing_ai/services/sync_service.py` | Dependency parsing, upstream release checking, changelog generation |
 

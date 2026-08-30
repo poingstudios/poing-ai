@@ -20,6 +20,8 @@ import requests
 from poing_ai.ai.base import BaseAIProvider
 from poing_ai.core.logging import get_logger
 from poing_ai.core.models import (
+    FileFix,
+    FixResult,
     ReviewComment,
     ReviewFinding,
     ReviewResult,
@@ -108,6 +110,35 @@ TRIAGE_SCHEMA = {
     "required": ["labels", "priority", "summary", "is_duplicate"],
 }
 
+FIX_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "summary": {
+            "type": "STRING",
+            "description": "Concise summary of the fixes applied.",
+        },
+        "fixes": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "file_path": {"type": "STRING"},
+                    "explanation": {"type": "STRING"},
+                    "original_snippet": {"type": "STRING"},
+                    "replacement_snippet": {"type": "STRING"},
+                },
+                "required": [
+                    "file_path",
+                    "explanation",
+                    "original_snippet",
+                    "replacement_snippet",
+                ],
+            },
+        },
+    },
+    "required": ["summary", "fixes"],
+}
+
 
 class GeminiProvider(BaseAIProvider):
     def __init__(self, api_key: str, models_to_try: Optional[List[str]] = None):
@@ -119,6 +150,7 @@ class GeminiProvider(BaseAIProvider):
             "gemini-3.5-flash-lite",
             "gemma-4-31b-it",
         ]
+        self.last_used_model = self.models_to_try[0] if self.models_to_try else "gemini-3.7-flash"
 
     def _call_model(
         self,
@@ -127,6 +159,7 @@ class GeminiProvider(BaseAIProvider):
         generation_config: Optional[Dict[str, Any]] = None,
         response_schema: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
+        self.last_used_model = model_name
         url = GEMINI_API_URL.format(model=model_name)
 
         config: Dict[str, Any] = {
@@ -280,6 +313,7 @@ class GeminiProvider(BaseAIProvider):
             except ValueError:
                 priority = TriagePriority.MEDIUM
 
+            self.last_used_model = model
             return TriageResult(
                 labels=data.get("labels", []),
                 priority=priority,
@@ -302,5 +336,45 @@ class GeminiProvider(BaseAIProvider):
                 generation_config={"temperature": 0.2, "maxOutputTokens": 2048},
             )
             if raw:
+                self.last_used_model = model
                 return raw
+        return None
+
+    def generate_fix(
+        self,
+        prompt: str,
+        model_name: Optional[str] = None,
+    ) -> Optional[FixResult]:
+        models = [model_name] if model_name else self.models_to_try
+        for model in models:
+            logger.info(f"Generating automated fix using {model}...")
+            raw = self._call_model(
+                prompt,
+                model,
+                response_schema=FIX_SCHEMA,
+                generation_config={"temperature": 0.2},
+            )
+            if not raw:
+                continue
+            data = self._parse_json(raw)
+            if not data or "fixes" not in data:
+                continue
+
+            fixes = [
+                FileFix(
+                    file_path=f.get("file_path", ""),
+                    explanation=f.get("explanation", ""),
+                    original_snippet=f.get("original_snippet", ""),
+                    replacement_snippet=f.get("replacement_snippet", ""),
+                )
+                for f in data.get("fixes", [])
+                if f.get("file_path") and f.get("original_snippet") is not None and f.get("replacement_snippet") is not None
+            ]
+            self.last_used_model = model
+            return FixResult(
+                summary=data.get("summary", ""),
+                fixes=fixes,
+                model=self.last_used_model,
+                tests_passed=True,
+            )
         return None
