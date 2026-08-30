@@ -24,14 +24,10 @@ WORKDIR /app
 # Install git for diff processing
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy source code and install package
+# Copy source code and install package with server extras
 COPY pyproject.toml README.md ./
 COPY src/ ./src/
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir ".[server]"
 
 EXPOSE 8080
 
