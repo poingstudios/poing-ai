@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "poing-ai"
-version = "1.0.1"
+version = "1.0.2"
 description = "AI-powered automated code review, triage, and multi-platform dependency updater for game engines and native repositories."
 readme = "README.md"
 authors = [{ name = "Poing Studios", email = "contact@poingstudios.com" }]
