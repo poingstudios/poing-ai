@@ -15,7 +15,12 @@
 import argparse
 import os
 import sys
+import warnings
 from typing import List, Optional
+
+# Suppress harmless urllib3 LibreSSL warning on macOS default Python builds
+warnings.filterwarnings("ignore", message=".*urllib3 v2 only supports OpenSSL.*")
+warnings.filterwarnings("ignore", message=".*NotOpenSSLWarning.*")
 
 from poing_ai.core.config import Config
 from poing_ai.core.logging import get_logger

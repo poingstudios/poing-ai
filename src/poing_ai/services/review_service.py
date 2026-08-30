@@ -351,7 +351,7 @@ class ReviewService:
         reset_color = "\033[0m"
 
         print("\n" + "=" * 60)
-        print(f"{verdict_color}POING REVIEWER — {result.verdict.value}{reset_color}")
+        print(f"{verdict_color}POING AI — {result.verdict.value}{reset_color}")
         print("=" * 60)
         if result.summary:
             print(f"\n{result.summary}\n")

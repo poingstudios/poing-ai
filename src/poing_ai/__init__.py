@@ -14,4 +14,10 @@
 
 """Poing AI - AI-powered Code Review, Triage, and Dependency Automation."""
 
-__version__ = "1.0.0"
+import warnings
+
+# Suppress harmless urllib3 LibreSSL warning on macOS default Python builds
+warnings.filterwarnings("ignore", message=".*urllib3 v2 only supports OpenSSL.*")
+warnings.filterwarnings("ignore", message=".*NotOpenSSLWarning.*")
+
+__version__ = "1.0.1"

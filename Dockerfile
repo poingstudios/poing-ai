@@ -28,9 +28,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source code and files
-COPY pyproject.toml .
+# Copy source code and install package
+COPY pyproject.toml README.md ./
 COPY src/ ./src/
+RUN pip install --no-cache-dir .
 
 EXPOSE 8080
 

@@ -108,7 +108,7 @@ runs:
         MAX_CHARS: ${{ inputs.max-chars }}
         MAX_BATCHES: ${{ inputs.max-batches }}
         REPO: ${{ github.repository }}
-        PR_NUMBER: ${{ inputs.number || github.event.pull_request.number }}
+        PR_NUMBER: ${{ inputs.number || github.event.pull_request.number || github.event.issue.number }}
         BASE_REF: ${{ inputs.base-ref || github.event.pull_request.base.ref || 'master' }}
         PR_TITLE: ${{ github.event.pull_request.title }}
         PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}

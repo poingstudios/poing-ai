@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/poing-ai.svg)](https://pypi.org/project/poing-ai/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/poing-ai.svg)](https://pypi.org/project/poing-ai/)
-[![GitHub Actions Marketplace](https://img.shields.io/badge/Marketplace-Poing%20Reviewer-blue?logo=github)](https://github.com/marketplace/actions/poing-ai)
+[![GitHub Actions Marketplace](https://img.shields.io/badge/Marketplace-Poing%20AI-blue?logo=github)](https://github.com/marketplace/actions/poing-ai)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 **Poing AI** is an AI-powered code review, issue triage, and multi-platform dependency automation bot powered by Google Gemini. Tailored for game engine plugins (**Godot**, **Unity**, **Unreal**) and multi-platform native mobile ecosystems (**Android**, **iOS**, **C#**, **C++**, **Rust**, **Python**).
@@ -47,9 +47,11 @@ name: "Poing AI"
 
 on:
   pull_request_target:
-    types: [opened, synchronize, ready_for_review, review_requested]
+    types: [opened, ready_for_review]
   issues:
     types: [opened]
+  issue_comment:
+    types: [created]
   workflow_dispatch:
     inputs:
       mode:
@@ -65,36 +67,37 @@ on:
         required: true
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   review:
     if: >
       (github.event_name == 'pull_request_target' && !github.event.pull_request.draft) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && (contains(github.event.comment.body, '/review') || contains(github.event.comment.body, '@poing-ai review'))) ||
       (github.event_name == 'workflow_dispatch' && inputs.mode == 'review')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
     steps:
-      - name: Checkout Code
+      - name: 1. Checkout Code
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Checkout PR (workflow_dispatch)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Checkout PR (workflow_dispatch or comment trigger)
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'issue_comment'
         run: gh pr checkout "$PR_NUMBER"
         env:
-          PR_NUMBER: ${{ inputs.number }}
+          PR_NUMBER: ${{ inputs.number || github.event.issue.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Reviewer
-        uses: poingstudios/poing-ai@master
+      - name: 2. Run Poing AI
+        uses: poingstudios/poing-ai@v1
         with:
           mode: review
-          number: ${{ inputs.number }}
+          number: ${{ inputs.number || github.event.issue.number }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 
@@ -106,11 +109,11 @@ jobs:
     permissions:
       issues: write
     steps:
-      - name: Checkout Code
+      - name: 1. Checkout Code
         uses: actions/checkout@v7
 
-      - name: Run Triage
-        uses: poingstudios/poing-ai@master
+      - name: 2. Run Poing AI
+        uses: poingstudios/poing-ai@v1
         with:
           mode: triage
           number: ${{ inputs.number }}
