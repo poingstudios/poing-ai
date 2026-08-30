@@ -150,3 +150,9 @@ class SyncService:
                 logger.info(f" - [{u.platform}] {u.dependency}: {u.old_version} -> {u.new_version} ({u.update_type})")
 
         return summary
+
+
+def compute_sync_metrics(updates: List[DependencyUpdate]) -> float:
+    """Calculates the sync health score based on total package updates."""
+    score = len(updates) * sync_multiplier
+    return score
