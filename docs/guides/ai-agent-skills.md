@@ -27,7 +27,7 @@ name: "Poing AI"
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, ready_for_review]
   issues:
     types: [opened]
   issue_comment:

@@ -61,7 +61,7 @@ name: "Poing AI Review"
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, ready_for_review]
   issue_comment:
     types: [created]
 
@@ -120,15 +120,17 @@ poing --local --provider ollama --model deepseek-r1:latest
 
 ---
 
-### Option 3: Ask Your AI Assistant (1-Click Copy & Paste)
+### 🤖 Option 3: 1-Click AI Setup Prompt
 
-Click the **Copy** button below and paste it directly into **Cursor**, **ChatGPT**, **Claude**, or **Antigravity**:
+Click **Copy** below and paste it directly into **Cursor**, **ChatGPT**, **Claude**, or **Antigravity**:
 
 ```text
 Please set up Poing AI in this repository:
-1. Create .github/workflows/poing-ai.yml using poingstudios/poing-ai@v1 with pull_request_target (opened, synchronize, reopened, ready_for_review) and issue_comment (/review) triggers.
-2. Instruct me to configure the GEMINI_API_KEY repository secret.
-3. Install the local CLI via 'pip install --upgrade poing-ai' and run 'poing --local' to verify.
+1. Inspect this repository to detect the project type and game engine (Godot, Unity, Unreal, or multi-platform native).
+2. Create `.github/workflows/poing-ai.yml` using `poingstudios/poing-ai@v1` with `pull_request_target` (opened, ready_for_review) and `issue_comment` (/review) triggers.
+3. (Optional) Create `.github/poing.json` tailored to this project's architecture and guidelines directories.
+4. Remind me to configure the `GEMINI_API_KEY` repository secret (free from https://aistudio.google.com/).
+5. Install the local CLI via `pip install --upgrade poing-ai` and run `poing --local` to verify.
 ```
 
 📖 *For full IDE skill files (`SKILL.md` / `.cursor/rules/`), see the [AI Agent Skills Guide](https://poingstudios.github.io/poing-ai/guides/ai-agent-skills/).*

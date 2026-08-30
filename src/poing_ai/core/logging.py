@@ -28,6 +28,7 @@ class ColoredFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         color = self.COLORS.get(record.levelno, self.RESET)
+        time_tag = f"\033[90m[{self.formatTime(record, '%Y-%m-%d %H:%M:%S')}]\033[0m"
         level_tag = f"{color}[{record.levelname}]{self.RESET}"
         name_tag = f"\033[90m[{record.name}]\033[0m"
 
@@ -36,7 +37,7 @@ class ColoredFormatter(logging.Formatter):
         if record.levelno >= logging.WARNING:
             msg = f"{color}{msg}{self.RESET}"
 
-        formatted = f"{level_tag} {name_tag} {msg}"
+        formatted = f"{time_tag} {level_tag} {name_tag} {msg}"
 
         if record.exc_info:
             if not record.exc_text:
