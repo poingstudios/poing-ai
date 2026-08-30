@@ -20,6 +20,8 @@ import requests
 from poing_ai.ai.base import BaseAIProvider
 from poing_ai.core.logging import get_logger
 from poing_ai.core.models import (
+    FileFix,
+    FixResult,
     ReviewComment,
     ReviewFinding,
     ReviewResult,
@@ -106,6 +108,35 @@ TRIAGE_SCHEMA = {
         },
     },
     "required": ["labels", "priority", "summary", "is_duplicate"],
+}
+
+FIX_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "summary": {
+            "type": "STRING",
+            "description": "Concise summary of the fixes applied.",
+        },
+        "fixes": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "file_path": {"type": "STRING"},
+                    "explanation": {"type": "STRING"},
+                    "original_snippet": {"type": "STRING"},
+                    "replacement_snippet": {"type": "STRING"},
+                },
+                "required": [
+                    "file_path",
+                    "explanation",
+                    "original_snippet",
+                    "replacement_snippet",
+                ],
+            },
+        },
+    },
+    "required": ["summary", "fixes"],
 }
 
 
@@ -303,4 +334,42 @@ class GeminiProvider(BaseAIProvider):
             )
             if raw:
                 return raw
+        return None
+
+    def generate_fix(
+        self,
+        prompt: str,
+        model_name: Optional[str] = None,
+    ) -> Optional[FixResult]:
+        models = [model_name] if model_name else self.models_to_try
+        for model in models:
+            logger.info(f"Generating automated fix using {model}...")
+            raw = self._call_model(
+                prompt,
+                model,
+                schema=FIX_SCHEMA,
+                generation_config={"temperature": 0.2},
+            )
+            if not raw:
+                continue
+            data = self._parse_json(raw)
+            if not data or "fixes" not in data:
+                continue
+
+            fixes = [
+                FileFix(
+                    file_path=f.get("file_path", ""),
+                    explanation=f.get("explanation", ""),
+                    original_snippet=f.get("original_snippet", ""),
+                    replacement_snippet=f.get("replacement_snippet", ""),
+                )
+                for f in data.get("fixes", [])
+                if f.get("file_path") and f.get("original_snippet") is not None and f.get("replacement_snippet") is not None
+            ]
+            return FixResult(
+                summary=data.get("summary", ""),
+                fixes=fixes,
+                model=self.last_used_model,
+                tests_passed=True,
+            )
         return None

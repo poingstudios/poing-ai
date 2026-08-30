@@ -4,11 +4,24 @@ Poing AI supports multiple AI backends, from cloud APIs to 100% private local mo
 
 ---
 
-## 1. Google Gemini (Default)
+## 1. Google Antigravity Managed Agent (`provider: antigravity`)
+
+Powered by Google's **Interactions API** (`antigravity-preview-05-2026`) featuring remote Linux sandboxing, multi-step autonomous tool use, and self-healing test execution.
+
+- **Primary Agent**: `antigravity-preview-05-2026`
+- **Setup**:
+  ```bash
+  export GEMINI_API_KEY="your-gemini-key"
+  poing --local --provider antigravity --fix
+  ```
+
+---
+
+## 2. Google Gemini (Default)
 
 Powered by the official Google Gemini REST API.
 
-- **Primary Models**: `gemini-2.5-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`, `gemma-4-31b-it`
+- **Primary Models**: `gemini-3.7-flash`, `gemini-3.5-flash`
 - **Setup**:
   ```bash
   export GEMINI_API_KEY="your-gemini-key"
@@ -16,7 +29,7 @@ Powered by the official Google Gemini REST API.
 
 ---
 
-## 2. Local Ollama & vLLM (Offline / Private)
+## 3. Local Ollama & vLLM (Offline / Private)
 
 Run completely offline on your own machine without sending code to the cloud.
 

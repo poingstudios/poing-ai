@@ -64,6 +64,7 @@ nav:
       - Installation: getting-started/installation.md
   - User Guides:
       - Automated Code Review: guides/code-review.md
+      - Autonomous Code Repair: guides/auto-fix.md
       - RAG & Guidelines Retrieval: guides/rag-guidelines.md
       - AI Agent Skills (Cursor, Claude, AGY): guides/ai-agent-skills.md
       - On-Demand PR Commands: guides/pr-commands.md

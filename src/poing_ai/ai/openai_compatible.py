@@ -21,6 +21,8 @@ import requests
 from poing_ai.ai.base import BaseAIProvider
 from poing_ai.core.logging import get_logger
 from poing_ai.core.models import (
+    FileFix,
+    FixResult,
     ReviewComment,
     ReviewFinding,
     ReviewResult,
@@ -251,4 +253,45 @@ class OpenAICompatibleProvider(BaseAIProvider):
             )
             if raw:
                 return sanitize_ai_json_output(raw)
+        return None
+
+    def generate_fix(
+        self,
+        prompt: str,
+        model_name: Optional[str] = None,
+    ) -> Optional[FixResult]:
+        models = [model_name] if model_name else self.models_to_try
+        for model in models:
+            logger.info(f"Generating automated fix using {model}...")
+            raw = self._call_model(
+                prompt=prompt,
+                model_name=model,
+                system_prompt="You are an expert autonomous software engineer. Return a JSON object with 'summary' and 'fixes' containing 'file_path', 'explanation', 'original_snippet', and 'replacement_snippet'.",
+                temperature=0.1,
+                max_tokens=4096,
+                require_json=True,
+            )
+            if not raw:
+                continue
+
+            data = self._parse_json(raw)
+            if not data or "fixes" not in data:
+                continue
+
+            fixes = [
+                FileFix(
+                    file_path=f.get("file_path", ""),
+                    explanation=f.get("explanation", ""),
+                    original_snippet=f.get("original_snippet", ""),
+                    replacement_snippet=f.get("replacement_snippet", ""),
+                )
+                for f in data.get("fixes", [])
+                if f.get("file_path") and f.get("original_snippet") is not None and f.get("replacement_snippet") is not None
+            ]
+            return FixResult(
+                summary=data.get("summary", ""),
+                fixes=fixes,
+                model=self.last_used_model,
+                tests_passed=True,
+            )
         return None

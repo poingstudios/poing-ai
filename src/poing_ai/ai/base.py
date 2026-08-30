@@ -15,7 +15,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
-from poing_ai.core.models import ReviewResult, TriageResult
+from poing_ai.core.models import FixResult, ReviewResult, TriageResult
 
 
 class BaseAIProvider(ABC):
@@ -46,4 +46,13 @@ class BaseAIProvider(ABC):
         model_name: Optional[str] = None,
     ) -> Optional[str]:
         """Generate release notes & breaking changes summary."""
+        pass
+
+    @abstractmethod
+    def generate_fix(
+        self,
+        prompt: str,
+        model_name: Optional[str] = None,
+    ) -> Optional[FixResult]:
+        """Generate automated code fixes and patches."""
         pass
