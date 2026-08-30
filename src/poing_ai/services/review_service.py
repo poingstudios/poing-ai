@@ -73,8 +73,14 @@ def pick_verdict(verdicts: List[ReviewVerdict]) -> ReviewVerdict:
 
 
 def _sanitize_markdown_text(text: str) -> str:
-    """Wraps raw unbackticked HTML tags in backticks to prevent unintended Markdown rendering."""
+    """Wraps raw unbackticked HTML tags in backticks and unescapes literal escaped characters."""
     import re
+    if not text:
+        return ""
+    if "\\n" in text:
+        text = text.replace("\\n", "\n")
+    if '\\"' in text:
+        text = text.replace('\\"', '"')
     return re.sub(r"(?<!`)(</?[a-zA-Z][a-zA-Z0-9_-]*(?:\s+[^>]*)?>)(?!`)", r"`\1`", text)
 
 
@@ -414,7 +420,7 @@ class ReviewService:
             {
                 "path": c.path,
                 "line": c.line,
-                "body": add_footer_hint(c.body),
+                "body": add_footer_hint(_sanitize_markdown_text(c.body)),
             }
             for c in result.comments
         ]
