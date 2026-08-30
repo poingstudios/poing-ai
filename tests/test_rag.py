@@ -1,8 +1,14 @@
+from pathlib import Path
 import shutil
+import sys
 import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+src_dir = str(Path(__file__).resolve().parent.parent / "src")
+if src_dir not in sys.path:
+    sys.path.insert(0, src_dir)
+
 from poing_ai.ai.rag.gemini_embedder import GeminiEmbedder
 from poing_ai.ai.rag.vector_rag import VectorRAGRetriever, cosine_similarity
 
@@ -98,6 +104,41 @@ class TestRAG(unittest.TestCase):
         usages = retriever.find_cross_file_usages(symbols, modified_files={"src/service.py"})
         self.assertIn("calculate_total", usages)
         self.assertTrue(any("main.py" in u for u in usages["calculate_total"]))
+
+    def test_markdown_breadcrumb_parser(self):
+        from poing_ai.ai.rag.markdown_parser import parse_markdown_with_breadcrumbs
+
+        doc = """# AGENTS Guidelines
+Overview of guidelines.
+
+## GDScript Rules
+### Type Inference
+Always use := instead of =.
+
+### Internal Folder
+Do not use class_name.
+"""
+        sections = parse_markdown_with_breadcrumbs("AGENTS.md", doc)
+        self.assertEqual(len(sections), 3)
+        self.assertIn("[AGENTS.md > AGENTS Guidelines > GDScript Rules > Type Inference]", sections[1].breadcrumb)
+        self.assertIn("Always use := instead of =", sections[1].content)
+        self.assertIn("[AGENTS.md > AGENTS Guidelines > GDScript Rules > Internal Folder]", sections[2].breadcrumb)
+        self.assertIn("Do not use class_name", sections[2].content)
+
+    def test_dynamic_diff_query_builder(self):
+        from poing_ai.ai.rag.query_builder import build_diff_rag_query
+
+        files = ["addons/admob/internal/banner.gd", "platforms/ios/AdMob.swift"]
+        diff = "+var x := 10\n+func preload_asset(): pass"
+        query = build_diff_rag_query(files, diff_text=diff)
+
+        self.assertIn("gdscript", query)
+        self.assertIn("godot", query)
+        self.assertIn("swift", query)
+        self.assertIn("ios", query)
+        self.assertIn("internal", query)
+        self.assertIn("preload", query)
+        self.assertIn("type inference", query)
 
 
 if __name__ == "__main__":

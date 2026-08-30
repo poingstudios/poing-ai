@@ -16,6 +16,17 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      bump:
+        description: 'SemVer Bump Type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - none
 
 permissions:
   contents: write
@@ -41,18 +52,88 @@ jobs:
           token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: 3. Extract Version from pyproject.toml
-        id: get-version
+      - name: 3. Calculate & Apply SemVer Bump
+        id: semver
+        env:
+          BUMP: ${{ github.event.inputs.bump || 'patch' }}
         run: |
-          VERSION=$(grep -m 1 '^version = ' pyproject.toml | sed -E 's/version = "(.*)"/\1/')
-          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "TAG_NAME=v$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Extracted SemVer version: $VERSION"
+          python3 - << 'EOF'
+          import os
+          import re
+          from pathlib import Path
 
-      - name: 4. Check if Tag Already Exists
+          bump = os.environ.get("BUMP", "patch").lower()
+
+          # 1. Read current version from pyproject.toml
+          pyproject = Path("pyproject.toml")
+          content = pyproject.read_text(encoding="utf-8")
+          match = re.search(r'^version\s*=\s*"([^"]+)"', content, re.MULTILINE)
+          if not match:
+              raise ValueError("Could not find version in pyproject.toml")
+
+          current_ver = match.group(1)
+          parts = current_ver.split(".")
+          major = int(parts[0]) if len(parts) > 0 else 1
+          minor = int(parts[1]) if len(parts) > 1 else 0
+          patch = int(parts[2]) if len(parts) > 2 else 0
+
+          # 2. Calculate new version
+          if bump == "major":
+              new_ver = f"{major + 1}.0.0"
+          elif bump == "minor":
+              new_ver = f"{major}.{minor + 1}.0"
+          elif bump == "patch":
+              new_ver = f"{major}.{minor}.{patch + 1}"
+          else:
+              new_ver = current_ver
+
+          print(f"Bumping version from {current_ver} -> {new_ver} (type: {bump})")
+
+          # 3. Update files if version changed
+          if new_ver != current_ver:
+              # Update pyproject.toml
+              new_content = re.sub(
+                  r'^version\s*=\s*"[^"]+"',
+                  f'version = "{new_ver}"',
+                  content,
+                  flags=re.MULTILINE,
+              )
+              pyproject.write_text(new_content, encoding="utf-8")
+
+              # Update src/poing_ai/__init__.py
+              init_file = Path("src/poing_ai/__init__.py")
+              if init_file.exists():
+                  init_content = re.sub(
+                      r'__version__\s*=\s*"[^"]+"',
+                      f'__version__ = "{new_ver}"',
+                      init_file.read_text(encoding="utf-8"),
+                  )
+                  init_file.write_text(init_content, encoding="utf-8")
+
+          # Set GitHub Actions step outputs
+          gh_output = os.environ.get("GITHUB_OUTPUT")
+          if gh_output:
+              with open(gh_output, "a", encoding="utf-8") as f:
+                  f.write(f"OLD_VERSION={current_ver}\n")
+                  f.write(f"VERSION={new_ver}\n")
+                  f.write(f"TAG_NAME=v{new_ver}\n")
+                  f.write(f"CHANGED={'true' if new_ver != current_ver else 'false'}\n")
+          EOF
+
+      - name: 4. Commit and Push Bumped Version
+        if: steps.semver.outputs.CHANGED == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml src/poing_ai/__init__.py
+          git commit -m "chore(release): bump version to v${{ steps.semver.outputs.VERSION }}"
+          git pull origin master --rebase
+          git push origin master
+
+      - name: 5. Check if Tag Already Exists
         id: check-tag
         run: |
-          TAG="${{ steps.get-version.outputs.TAG_NAME }}"
+          TAG="${{ steps.semver.outputs.TAG_NAME }}"
           if git rev-parse "$TAG" >/dev/null 2>&1 || git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "Tag $TAG already exists on remote. Skipping release."
@@ -61,12 +142,12 @@ jobs:
             echo "Tag $TAG does not exist. Proceeding with release creation."
           fi
 
-      - name: 5. Create GitHub Release & Update Major Tag
+      - name: 6. Create GitHub Release & Update Major Tag
         if: steps.check-tag.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.get-version.outputs.TAG_NAME }}
-          VERSION: ${{ steps.get-version.outputs.VERSION }}
+          TAG: ${{ steps.semver.outputs.TAG_NAME }}
+          VERSION: ${{ steps.semver.outputs.VERSION }}
         run: |
           # 1. Create GitHub Release with auto-generated notes
           gh release create "$TAG" \
@@ -81,7 +162,7 @@ jobs:
           git tag -fa "$MAJOR_TAG" -m "Update $MAJOR_TAG pointer to $TAG"
           git push -f origin "$MAJOR_TAG"
 
-      - name: 6. Log in to GitHub Container Registry (GHCR)
+      - name: 7. Log in to GitHub Container Registry (GHCR)
         if: steps.check-tag.outputs.exists == 'false'
         uses: docker/login-action@v4
         with:
@@ -89,11 +170,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 7. Set up Docker Buildx
+      - name: 8. Set up Docker Buildx
         if: steps.check-tag.outputs.exists == 'false'
         uses: docker/setup-buildx-action@v4
 
-      - name: 8. Build & Push Docker Image to GitHub Packages
+      - name: 9. Build & Push Docker Image to GitHub Packages
         if: steps.check-tag.outputs.exists == 'false'
         uses: docker/build-push-action@v7
         with:
@@ -101,4 +182,4 @@ jobs:
           push: true
           tags: |
             ghcr.io/poingstudios/poing-ai:latest
-            ghcr.io/poingstudios/poing-ai:${{ steps.get-version.outputs.TAG_NAME }}
+            ghcr.io/poingstudios/poing-ai:${{ steps.semver.outputs.TAG_NAME }}

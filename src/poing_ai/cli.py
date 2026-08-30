@@ -22,7 +22,11 @@ from typing import List, Optional
 warnings.filterwarnings("ignore", message=".*urllib3 v2 only supports OpenSSL.*")
 warnings.filterwarnings("ignore", message=".*NotOpenSSLWarning.*")
 
-from poing_ai import __version__
+try:
+    from poing_ai import __version__
+except Exception:
+    __version__ = "1.0.1"
+
 from poing_ai.core.config import Config
 from poing_ai.core.logging import get_logger
 from poing_ai.services.review_service import ReviewService

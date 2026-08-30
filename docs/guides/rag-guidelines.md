@@ -24,12 +24,26 @@ flowchart LR
 
 ---
 
+---
+
+## 🎯 Key RAG Features
+
+### 1. 🌲 Dynamic Diff-Aware Querying
+Rather than querying static terms, Poing AI extracts changed file extensions (e.g. `.gd`, `.cs`, `.kt`, `.swift`), directories (`internal/`, `addons/`, `platforms/`), and added symbols (`class_name`, `preload`, `singleton`) to generate high-precision targeted queries:
+- *Example Query:* `"godot gdscript internal encapsulation class_name preload := type inference"`
+
+### 2. 🧱 Hierarchical AST Breadcrumbs
+Markdown files are parsed into heading hierarchy trees. Every chunk retains its exact context path so the AI never misattributes rules:
+- *Example Chunk Header:* `### Context: [AGENTS.md > Coding Standards > GDScript Rules > Type Inference]`
+
+---
+
 ## ⚙️ RAG Providers
 
 Poing AI supports two RAG engines:
 
 ### 1. `local` (Default)
-A zero-dependency, lightweight markdown scanner that parses markdown headings, guidelines, and rule blocks directly from disk without external embedding models.
+A zero-dependency, lightweight markdown AST scanner that parses headings, maintains breadcrumbs, and scores sections against the PR diff terms without external embedding models.
 
 ### 2. `vector`
 Uses semantic vector embeddings to perform cosine similarity searches across large documentation repositories.

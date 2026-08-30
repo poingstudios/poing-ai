@@ -47,6 +47,9 @@ SYMBOL_DEF_REGEX = re.compile(
 )
 
 
+COMMENT_PREFIXES = ("//", "#", "--", "/*", "*", "'''", '"""', "<!--", "REM ", "::")
+
+
 class SymbolImpactRetriever:
     """Analyzes cross-file call sites and usages for functions and classes modified in a PR diff."""
 
@@ -84,6 +87,9 @@ class SymbolImpactRetriever:
         results: Dict[str, List[str]] = {}
         modified_files = modified_files or set()
         active_symbols = list(symbols)[:self.max_symbols]
+        symbol_patterns = {
+            sym: re.compile(r"\b" + re.escape(sym) + r"\b") for sym in active_symbols
+        }
 
         # Scan code files in repository
         for file_path in self._walk_repo_files():
@@ -97,7 +103,7 @@ class SymbolImpactRetriever:
             except Exception:
                 continue
 
-            for sym in active_symbols:
+            for sym, pattern in symbol_patterns.items():
                 if sym not in content:
                     continue
 
@@ -109,8 +115,12 @@ class SymbolImpactRetriever:
 
                 # Locate line numbers
                 for idx, line in enumerate(content.splitlines(), start=1):
-                    if sym in line and not line.strip().startswith("//") and not line.strip().startswith("#"):
-                        results[sym].append(f"`{rel_str}:L{idx}` {line.strip()[:100]}")
+                    stripped = line.strip()
+                    if not stripped or any(stripped.startswith(prefix) for prefix in COMMENT_PREFIXES):
+                        continue
+
+                    if pattern.search(line):
+                        results[sym].append(f"`{rel_str}:L{idx}` {stripped[:100]}")
                         if len(results[sym]) >= self.max_usages_per_symbol:
                             break
 
