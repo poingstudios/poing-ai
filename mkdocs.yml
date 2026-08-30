@@ -1,0 +1,75 @@
+site_name: Poing AI
+site_description: AI-Powered Code Review, Triage, and Multi-Platform Dependency Automation
+site_author: Poing Studios
+site_url: https://poingstudios.github.io/poing-ai/
+repo_name: poingstudios/poing-ai
+repo_url: https://github.com/poingstudios/poing-ai
+edit_uri: edit/master/docs/
+
+theme:
+  name: material
+  language: en
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quick Start: getting-started/quickstart.md
+      - Installation: getting-started/installation.md
+  - User Guides:
+      - Automated Code Review: guides/code-review.md
+      - On-Demand PR Commands: guides/pr-commands.md
+      - Issue & PR Triage: guides/issue-triage.md
+      - Dependency Automation: guides/dependency-sync.md
+      - Local Terminal CLI: guides/local-cli.md
+  - Configuration:
+      - Workflow Reference: configuration/workflow-syntax.md
+      - AI Providers & Models: configuration/ai-providers.md
+      - poing.json Settings: configuration/poing-json.md
+  - Contributing: contributing.md
