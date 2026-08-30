@@ -65,6 +65,7 @@ nav:
   - User Guides:
       - Automated Code Review: guides/code-review.md
       - RAG & Guidelines Retrieval: guides/rag-guidelines.md
+      - AI Agent Skills (Cursor, Claude, AGY): guides/ai-agent-skills.md
       - On-Demand PR Commands: guides/pr-commands.md
       - Issue & PR Triage: guides/issue-triage.md
       - Dependency Automation: guides/dependency-sync.md
