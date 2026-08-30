@@ -270,8 +270,16 @@ class Config:
 
         self.PR_NUMBER = pr_number or get_env_optional("PR_NUMBER")
         self.BASE_REF = base_ref or get_env_optional("BASE_REF", "master")
-        self.PR_TITLE = pr_title or get_env_optional("PR_TITLE")
-        self.HEAD_SHA = head_sha or get_env_optional("PR_HEAD_SHA") or get_env_optional("GITHUB_SHA")
+        raw_head_sha = head_sha or get_env_optional("PR_HEAD_SHA")
+        if not raw_head_sha:
+            try:
+                import subprocess
+                proc = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                if proc.returncode == 0 and proc.stdout.strip():
+                    raw_head_sha = proc.stdout.strip()
+            except Exception:
+                pass
+        self.HEAD_SHA = raw_head_sha or get_env_optional("GITHUB_SHA")
 
         self.ISSUE_NUMBER = issue_number or get_env_optional("ISSUE_NUMBER")
         self.ISSUE_TITLE = issue_title or get_env_optional("ISSUE_TITLE")
