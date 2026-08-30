@@ -326,7 +326,7 @@ class FixService:
         if not test_cmd:
             return True, "No test command detected."
 
-        timeout = getattr(self.cfg, "TEST_TIMEOUT", 300)
+        timeout = getattr(self.cfg, "TEST_TIMEOUT", 60)
         logger.info(f"Running test validation command: `{test_cmd}` (timeout={timeout}s)...")
         try:
             res = subprocess.run(
