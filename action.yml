@@ -118,5 +118,5 @@ runs:
         ISSUE_ACTION: ${{ github.event.action }}
         COMMENT_BODY: ${{ github.event.comment.body }}
         TRIGGER_ACTION: ${{ github.event.action }}
-      run: python ${{ github.action_path }}/poing_ai.py
+      run: python -m poing_ai
       shell: bash

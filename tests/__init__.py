@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2026 Poing Studios
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,16 +15,7 @@
 from pathlib import Path
 import sys
 
-src_dir = Path(__file__).resolve().parent / "src"
-src_pkg_dir = src_dir / "poing_ai"
-
-if str(src_dir) not in sys.path:
-    sys.path.insert(0, str(src_dir))
-
-__path__ = [str(src_pkg_dir)]
-__version__ = "1.0.1"
-
-from poing_ai.cli import main
-
-if __name__ == "__main__":
-    sys.exit(main())
+# Ensure local src/ takes precedence over any globally installed site-packages
+src_dir = str(Path(__file__).resolve().parent.parent / "src")
+if src_dir not in sys.path:
+    sys.path.insert(0, src_dir)

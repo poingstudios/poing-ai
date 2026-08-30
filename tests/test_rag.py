@@ -1,8 +1,14 @@
+from pathlib import Path
 import shutil
+import sys
 import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+src_dir = str(Path(__file__).resolve().parent.parent / "src")
+if src_dir not in sys.path:
+    sys.path.insert(0, src_dir)
+
 from poing_ai.ai.rag.gemini_embedder import GeminiEmbedder
 from poing_ai.ai.rag.vector_rag import VectorRAGRetriever, cosine_similarity
 

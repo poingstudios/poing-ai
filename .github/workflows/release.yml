@@ -110,16 +110,6 @@ jobs:
                   )
                   init_file.write_text(init_content, encoding="utf-8")
 
-              # Update poing_ai.py shim
-              shim_file = Path("poing_ai.py")
-              if shim_file.exists():
-                  shim_content = re.sub(
-                      r'__version__\s*=\s*"[^"]+"',
-                      f'__version__ = "{new_ver}"',
-                      shim_file.read_text(encoding="utf-8"),
-                  )
-                  shim_file.write_text(shim_content, encoding="utf-8")
-
           # Set GitHub Actions step outputs
           gh_output = os.environ.get("GITHUB_OUTPUT")
           if gh_output:
@@ -135,7 +125,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml src/poing_ai/__init__.py poing_ai.py
+          git add pyproject.toml src/poing_ai/__init__.py
           git commit -m "chore(release): bump version to v${{ steps.semver.outputs.VERSION }}"
           git pull origin master --rebase
           git push origin master
