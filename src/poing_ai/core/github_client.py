@@ -18,6 +18,7 @@ import sys
 from typing import Any, Dict, List, Optional
 import requests
 
+from poing_ai import __version__
 from poing_ai.core.logging import get_logger
 
 logger = get_logger("github_client")
@@ -33,6 +34,7 @@ class GitHubClient:
     def _headers(self) -> Dict[str, str]:
         headers = {
             "Accept": "application/vnd.github.v3+json",
+            "User-Agent": f"PoingReviewer/{__version__}",
         }
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
@@ -41,7 +43,7 @@ class GitHubClient:
     def _graphql_headers(self) -> Dict[str, str]:
         headers = {
             "Accept": "application/vnd.github+json",
-            "User-Agent": "PoingReviewer/1.0",
+            "User-Agent": f"PoingReviewer/{__version__}",
         }
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
@@ -77,29 +79,41 @@ class GitHubClient:
     def fetch_bot_login(self) -> str:
         if not self.token:
             return ""
-        resp = requests.get(f"{BASE_URL}/user", headers=self._headers())
-        if resp.status_code == 200:
-            return resp.json().get("login", "")
+        try:
+            resp = requests.get(f"{BASE_URL}/user", headers=self._headers(), timeout=15)
+            if resp.status_code == 200:
+                return resp.json().get("login", "")
+        except Exception as e:
+            logger.debug(f"Failed to fetch bot login: {e}")
         return ""
 
     def fetch_existing_reviews(self, repo: str, pr_number: str) -> List[Dict[str, Any]]:
         if not self.token or not repo or not pr_number:
             return []
-        resp = requests.get(
-            f"{BASE_URL}/repos/{repo}/pulls/{pr_number}/reviews",
-            headers=self._headers(),
-        )
-        if resp.status_code == 200:
-            return resp.json()
+        try:
+            resp = requests.get(
+                f"{BASE_URL}/repos/{repo}/pulls/{pr_number}/reviews",
+                headers=self._headers(),
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                return resp.json()
+        except Exception as e:
+            logger.debug(f"Failed to fetch existing reviews: {e}")
         return []
 
     def dismiss_review(self, repo: str, pr_number: str, review_id: int, message: str) -> bool:
-        resp = requests.put(
-            f"{BASE_URL}/repos/{repo}/pulls/{pr_number}/reviews/{review_id}/dismissals",
-            headers=self._headers(),
-            json={"message": message},
-        )
-        return resp.status_code == 200
+        try:
+            resp = requests.put(
+                f"{BASE_URL}/repos/{repo}/pulls/{pr_number}/reviews/{review_id}/dismissals",
+                headers=self._headers(),
+                json={"message": message},
+                timeout=15,
+            )
+            return resp.status_code == 200
+        except Exception as e:
+            logger.warning(f"Failed to dismiss review {review_id}: {e}")
+            return False
 
     def submit_review(
         self,
@@ -116,6 +130,7 @@ class GitHubClient:
             f"{BASE_URL}/repos/{repo}/pulls/{pr_number}/reviews",
             headers=self._headers(),
             json=payload,
+            timeout=30,
         )
         return resp
 
@@ -233,31 +248,44 @@ class GitHubClient:
             return False
 
     def post_thread_comment(self, repo: str, comment_id: int, body: str) -> bool:
-        resp = requests.post(
-            f"{BASE_URL}/repos/{repo}/pulls/comments/{comment_id}/replies",
-            headers=self._headers(),
-            json={"body": body},
-        )
-        return resp.status_code == 201
+        try:
+            resp = requests.post(
+                f"{BASE_URL}/repos/{repo}/pulls/comments/{comment_id}/replies",
+                headers=self._headers(),
+                json={"body": body},
+                timeout=15,
+            )
+            return resp.status_code == 201
+        except Exception as e:
+            logger.warning(f"Failed to post thread comment reply: {e}")
+            return False
 
     def fetch_issue(self, repo: str, issue_number: str) -> Optional[Dict[str, Any]]:
-        resp = requests.get(
-            f"{BASE_URL}/repos/{repo}/issues/{issue_number}",
-            headers=self._headers(),
-        )
-        if resp.status_code == 200:
-            return resp.json()
-        logger.error(f"Error fetching issue {issue_number}: {resp.status_code} {resp.text}")
+        try:
+            resp = requests.get(
+                f"{BASE_URL}/repos/{repo}/issues/{issue_number}",
+                headers=self._headers(),
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                return resp.json()
+            logger.error(f"Error fetching issue {issue_number}: {resp.status_code} {resp.text}")
+        except Exception as e:
+            logger.error(f"Request failed fetching issue {issue_number}: {e}")
         return None
 
     def fetch_issue_labels(self, repo: str) -> List[Dict[str, Any]]:
-        resp = requests.get(
-            f"{BASE_URL}/repos/{repo}/labels",
-            headers=self._headers(),
-        )
-        if resp.status_code == 200:
-            return resp.json()
-        logger.error(f"Error fetching labels for {repo}: {resp.status_code} {resp.text}")
+        try:
+            resp = requests.get(
+                f"{BASE_URL}/repos/{repo}/labels",
+                headers=self._headers(),
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                return resp.json()
+            logger.error(f"Error fetching labels for {repo}: {resp.status_code} {resp.text}")
+        except Exception as e:
+            logger.error(f"Request failed fetching labels for {repo}: {e}")
         return []
 
     def create_label(
@@ -272,39 +300,58 @@ class GitHubClient:
             payload["color"] = color
         if description:
             payload["description"] = description
-        resp = requests.post(
-            f"{BASE_URL}/repos/{repo}/labels",
-            headers=self._headers(),
-            json=payload,
-        )
-        if resp.status_code == 201:
-            return resp.json()
+        try:
+            resp = requests.post(
+                f"{BASE_URL}/repos/{repo}/labels",
+                headers=self._headers(),
+                json=payload,
+                timeout=15,
+            )
+            if resp.status_code == 201:
+                return resp.json()
+        except Exception as e:
+            logger.warning(f"Failed to create label {name}: {e}")
         return None
 
     def add_labels_to_issue(self, repo: str, issue_number: str, labels: List[str]) -> bool:
-        resp = requests.post(
-            f"{BASE_URL}/repos/{repo}/issues/{issue_number}/labels",
-            headers=self._headers(),
-            json={"labels": labels},
-        )
-        return resp.status_code == 200
+        try:
+            resp = requests.post(
+                f"{BASE_URL}/repos/{repo}/issues/{issue_number}/labels",
+                headers=self._headers(),
+                json={"labels": labels},
+                timeout=15,
+            )
+            return resp.status_code == 200
+        except Exception as e:
+            logger.warning(f"Failed to add labels to issue #{issue_number}: {e}")
+            return False
 
     def remove_label_from_issue(self, repo: str, issue_number: str, label: str) -> bool:
         import urllib.parse
         encoded_label = urllib.parse.quote(label)
-        resp = requests.delete(
-            f"{BASE_URL}/repos/{repo}/issues/{issue_number}/labels/{encoded_label}",
-            headers=self._headers(),
-        )
-        return resp.status_code in (200, 204)
+        try:
+            resp = requests.delete(
+                f"{BASE_URL}/repos/{repo}/issues/{issue_number}/labels/{encoded_label}",
+                headers=self._headers(),
+                timeout=15,
+            )
+            return resp.status_code in (200, 204)
+        except Exception as e:
+            logger.warning(f"Failed to remove label {label} from issue #{issue_number}: {e}")
+            return False
 
     def add_comment(self, repo: str, issue_number: str, body: str) -> bool:
-        resp = requests.post(
-            f"{BASE_URL}/repos/{repo}/issues/{issue_number}/comments",
-            headers=self._headers(),
-            json={"body": body},
-        )
-        return resp.status_code == 201
+        try:
+            resp = requests.post(
+                f"{BASE_URL}/repos/{repo}/issues/{issue_number}/comments",
+                headers=self._headers(),
+                json={"body": body},
+                timeout=15,
+            )
+            return resp.status_code == 201
+        except Exception as e:
+            logger.warning(f"Failed to add comment to issue #{issue_number}: {e}")
+            return False
 
     def verify_action_exists(self, action_ref: str) -> bool:
         if "@" not in action_ref:

@@ -127,7 +127,7 @@ class GeminiProvider(BaseAIProvider):
         generation_config: Optional[Dict[str, Any]] = None,
         response_schema: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
-        url = GEMINI_API_URL.format(model=model_name) + f"?key={self.api_key}"
+        url = GEMINI_API_URL.format(model=model_name)
 
         config: Dict[str, Any] = {
             "temperature": 0.2,
@@ -146,12 +146,17 @@ class GeminiProvider(BaseAIProvider):
             if "gemma" not in model_name.lower():
                 payload["generationConfig"]["responseSchema"] = response_schema
 
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key,
+        }
+
         for attempt in range(3):
             try:
                 resp = requests.post(
                     url,
                     json=payload,
-                    headers={"Content-Type": "application/json"},
+                    headers=headers,
                     timeout=45,
                 )
                 if resp.status_code == 200:

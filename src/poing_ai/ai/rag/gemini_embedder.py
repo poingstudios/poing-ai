@@ -49,16 +49,25 @@ class GeminiEmbedder(BaseEmbedder):
 
         for api_ver in EMBEDDING_API_VERSIONS:
             for model in self.models_to_try:
-                url = f"https://generativelanguage.googleapis.com/{api_ver}/models/{model}:embedContent?key={self.api_key}"
+                url = f"https://generativelanguage.googleapis.com/{api_ver}/models/{model}:embedContent"
                 payload: Dict[str, Any] = {
                     "content": {
                         "parts": [{"text": text[:8000]}]
                     },
                 }
+                headers = {
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": self.api_key,
+                }
 
                 for attempt in range(3):
                     try:
-                        resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
+                        resp = requests.post(
+                            url,
+                            json=payload,
+                            headers=headers,
+                            timeout=20,
+                        )
                         if resp.status_code == 200:
                             data = resp.json()
                             embedding = data.get("embedding", {}).get("values", [])
