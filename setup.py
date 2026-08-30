@@ -16,7 +16,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="poing-ai",
-    version="1.0.2",
+    version="1.1.0",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     install_requires=[
