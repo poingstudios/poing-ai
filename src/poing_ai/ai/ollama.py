@@ -226,11 +226,13 @@ class OllamaProvider(BaseAIProvider):
             except ValueError:
                 verdict = ReviewVerdict.APPROVED
 
+            self.last_used_model = model
             return ReviewResult(
                 verdict=verdict,
                 summary=data.get("summary", ""),
                 findings=findings,
                 comments=comments,
+                model=model,
             )
         return None
 

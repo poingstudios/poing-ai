@@ -290,21 +290,26 @@ class ReviewService:
         return final_result
 
     def _build_review_body(self, result: ReviewResult) -> str:
+        meta_items = []
         short_sha = self.cfg.HEAD_SHA[:10] if self.cfg.HEAD_SHA else ""
         if short_sha and self.cfg.REPO:
             commit_url = f"https://github.com/{self.cfg.REPO}/commit/{self.cfg.HEAD_SHA}"
-            sha_line = f"**Commit:** [`{short_sha}`]({commit_url})\n"
+            meta_items.append(f"**Commit:** [`{short_sha}`]({commit_url})")
         elif short_sha:
-            sha_line = f"**Commit:** `{short_sha}`\n"
-        else:
-            sha_line = ""
+            meta_items.append(f"**Commit:** `{short_sha}`")
+
+        model_name = result.model or getattr(self.ai, "last_used_model", "") or getattr(self.cfg, "PRIMARY_MODEL", "")
+        if model_name:
+            meta_items.append(f"**Model:** `{model_name}`")
+
+        meta_line = (" · ".join(meta_items) + "\n") if meta_items else ""
 
         verdict_label = VERDICT_MAP.get(result.verdict.value, str(result.verdict))
 
         body_parts = [f"## 🤖 Poing AI\n"]
 
-        if sha_line:
-            body_parts.append(sha_line)
+        if meta_line:
+            body_parts.append(meta_line)
 
         body_parts.append(f"{verdict_label}\n")
 
@@ -350,8 +355,12 @@ class ReviewService:
         }.get(result.verdict, "\033[0m")
         reset_color = "\033[0m"
 
+        model_name = result.model or getattr(self.ai, "last_used_model", "") or getattr(self.cfg, "PRIMARY_MODEL", "")
+
         print("\n" + "=" * 60)
         print(f"{verdict_color}POING AI — {result.verdict.value}{reset_color}")
+        if model_name:
+            print(f"Model: {model_name}")
         print("=" * 60)
         if result.summary:
             print(f"\n{result.summary}\n")

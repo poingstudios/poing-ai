@@ -70,7 +70,7 @@ jobs:
         run: |
           # 1. Create GitHub Release with auto-generated notes
           gh release create "$TAG" \
-            --title "$TAG — Poing AI Release" \
+            --title "$TAG" \
             --generate-notes \
             --target master
 
