@@ -14,6 +14,7 @@
 ## ✨ Features
 
 - 🔍 **Intelligent Code Review**: Full-file ground-truth context with built-in game engine analyzers (**Godot Engine** `:=` static typing & encapsulation rules, Unity, Unreal).
+- 🧠 **RAG Guidelines Retrieval**: Automatically semantically retrieves relevant rules from `AGENTS.md` and repository docs to enforce your team's custom standards without token waste.
 - 🛡️ **Anti-Hallucination**: Queries live GitHub releases in real time to verify actions and dependencies.
 - 👎 **Thumbs-Down Learning**: Learns from developer `👎` reactions to permanently eliminate recurring false positives.
 - 🔄 **Thread Auto-Resolution**: Resolves fixed review comment threads automatically via GitHub GraphQL.
