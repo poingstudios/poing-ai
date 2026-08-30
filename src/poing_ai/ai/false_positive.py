@@ -33,12 +33,14 @@ def add_footer_hint(body: str) -> str:
     return body.rstrip() + COMMENT_FOOTER_HINT
 
 
-def _is_bot_comment_by_login(author_login: str, bot_login: Optional[str], body: str = "") -> bool:
-    if bot_login and author_login.lower() == bot_login.lower():
+def _is_bot_comment_by_login(author_login: Optional[str], bot_login: Optional[str], body: Optional[str] = "") -> bool:
+    login_str = (author_login or "").lower()
+    body_str = body or ""
+    if bot_login and login_str == bot_login.lower():
         return True
-    if "bot" in author_login.lower() or "poing-ai" in author_login.lower():
+    if "bot" in login_str or "poing-ai" in login_str:
         return True
-    if "👍 helpful · 👎 false positive" in body or "About Poing AI" in body:
+    if "👍 helpful · 👎 false positive" in body_str or "About Poing AI" in body_str:
         return True
     return False
 

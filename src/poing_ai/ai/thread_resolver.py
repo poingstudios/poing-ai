@@ -39,13 +39,14 @@ def collect_thread_fingerprints(
         first = comments[0]
         if not first:
             continue
-        author_login = (first.get("author") or {}).get("login", "")
-        raw_body = first.get("body", "")
+        author_login = (first.get("author") or {}).get("login") or ""
+        raw_body = first.get("body") or ""
+        login_str = author_login.lower()
 
         is_bot = (
-            (bot_login and author_login.lower() == bot_login.lower())
-            or "bot" in author_login.lower()
-            or "poing-ai" in author_login.lower()
+            (bot_login and login_str == bot_login.lower())
+            or "bot" in login_str
+            or "poing-ai" in login_str
             or "👍 helpful · 👎 false positive" in raw_body
             or "About Poing AI" in raw_body
         )
