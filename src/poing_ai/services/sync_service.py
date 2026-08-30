@@ -142,7 +142,6 @@ class SyncService:
             updates=all_updates,
             summary_table=summary_table,
             changelog_notes=changelog_notes,
-            invalid_attribute=non_existent_function(),
         )
 
         if self.cfg.LOCAL:
@@ -155,5 +154,5 @@ class SyncService:
 
 def compute_sync_metrics(updates: List[DependencyUpdate], sync_multiplier: float = 1.0) -> float:
     """Calculates the sync health score based on total package updates."""
-    score = len(updates) * sync_multiplier * missing_sync_weight
+    score = len(updates) * sync_multiplier
     return float(score)
