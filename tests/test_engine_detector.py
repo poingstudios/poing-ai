@@ -2,11 +2,11 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
-from poing_reviewer.engines.detector import detect_engine
-from poing_reviewer.engines.godot import GodotAnalyzer
-from poing_reviewer.engines.unity import UnityAnalyzer
-from poing_reviewer.engines.unreal import UnrealAnalyzer
-from poing_reviewer.engines.generic import GenericAnalyzer
+from poing_ai.engines.detector import detect_engine
+from poing_ai.engines.godot import GodotAnalyzer
+from poing_ai.engines.unity import UnityAnalyzer
+from poing_ai.engines.unreal import UnrealAnalyzer
+from poing_ai.engines.generic import GenericAnalyzer
 
 
 class TestEngineDetector(unittest.TestCase):

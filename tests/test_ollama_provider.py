@@ -2,8 +2,8 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from poing_reviewer.ai.ollama import OllamaProvider
-from poing_reviewer.core.models import ReviewVerdict, TriagePriority
+from poing_ai.ai.ollama import OllamaProvider
+from poing_ai.core.models import ReviewVerdict, TriagePriority
 
 
 class TestOllamaProvider(unittest.TestCase):

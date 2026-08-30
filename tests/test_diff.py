@@ -1,5 +1,5 @@
 import unittest
-from poing_reviewer.core.git import annotate_diff, split_batches, split_diff_by_file
+from poing_ai.core.git import annotate_diff, split_batches, split_diff_by_file
 
 SAMPLE_DIFF = """diff --git a/test.gd b/test.gd
 index 1234567..89abcdef 100644

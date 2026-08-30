@@ -3,9 +3,9 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
-from poing_reviewer.parsers.gdscript_config import GDScriptConfigParser
-from poing_reviewer.parsers.gradle import GradleParser
-from poing_reviewer.parsers.swift_package import SwiftPackageParser
+from poing_ai.parsers.gdscript_config import GDScriptConfigParser
+from poing_ai.parsers.gradle import GradleParser
+from poing_ai.parsers.swift_package import SwiftPackageParser
 
 
 class TestParsers(unittest.TestCase):

@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "poing-reviewer"
+name = "poing-ai"
 version = "1.0.0"
 description = "AI-powered automated code review, triage, and multi-platform dependency updater for game engines and native repositories."
 readme = "README.md"
@@ -48,16 +48,15 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/poingstudios/poing-reviewer"
-Documentation = "https://github.com/poingstudios/poing-reviewer#readme"
-Repository = "https://github.com/poingstudios/poing-reviewer"
-Issues = "https://github.com/poingstudios/poing-reviewer/issues"
-Changelog = "https://github.com/poingstudios/poing-reviewer/releases"
+Homepage = "https://github.com/poingstudios/poing-ai"
+Documentation = "https://github.com/poingstudios/poing-ai#readme"
+Repository = "https://github.com/poingstudios/poing-ai"
+Issues = "https://github.com/poingstudios/poing-ai/issues"
+Changelog = "https://github.com/poingstudios/poing-ai/releases"
 
 [project.scripts]
-poing-reviewer = "poing_reviewer.cli:main"
-prev = "poing_reviewer.cli:main"
-prv = "poing_reviewer.cli:main"
+poing-ai = "poing_ai.cli:main"
+poing = "poing_ai.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

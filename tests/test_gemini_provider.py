@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from poing_reviewer.ai.gemini import GeminiProvider
-from poing_reviewer.core.models import ReviewVerdict, TriagePriority
+from poing_ai.ai.gemini import GeminiProvider
+from poing_ai.core.models import ReviewVerdict, TriagePriority
 
 
 class TestGeminiProvider(unittest.TestCase):

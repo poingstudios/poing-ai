@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from poing_reviewer.cli import create_parser, main
-from poing_reviewer.core.models import ReviewResult, ReviewVerdict, TriagePriority, TriageResult
+from poing_ai.cli import create_parser, main
+from poing_ai.core.models import ReviewResult, ReviewVerdict, TriagePriority, TriageResult
 
 
 class TestCLI(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(args.output, "json")
         self.assertTrue(args.fail_on_changes)
 
-    @patch("poing_reviewer.services.review_service.ReviewService.run")
+    @patch("poing_ai.services.review_service.ReviewService.run")
     def test_main_review_success(self, mock_review_run):
         mock_review_run.return_value = ReviewResult(
             verdict=ReviewVerdict.APPROVED,
@@ -34,7 +34,7 @@ class TestCLI(unittest.TestCase):
         exit_code = main(["--local", "--provider", "gemini"])
         self.assertEqual(exit_code, 0)
 
-    @patch("poing_reviewer.services.review_service.ReviewService.run")
+    @patch("poing_ai.services.review_service.ReviewService.run")
     def test_main_fail_on_changes(self, mock_review_run):
         mock_review_run.return_value = ReviewResult(
             verdict=ReviewVerdict.CHANGES_REQUESTED,
@@ -43,7 +43,7 @@ class TestCLI(unittest.TestCase):
         exit_code = main(["--local", "--fail-on-changes"])
         self.assertEqual(exit_code, 1)
 
-    @patch("poing_reviewer.services.triage_service.TriageService.run")
+    @patch("poing_ai.services.triage_service.TriageService.run")
     def test_main_triage(self, mock_triage_run):
         mock_triage_run.return_value = TriageResult(
             labels=["bug"],

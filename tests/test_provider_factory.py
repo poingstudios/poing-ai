@@ -1,17 +1,17 @@
 import unittest
 from unittest.mock import MagicMock
 
-from poing_reviewer.ai.factory import create_ai_provider
-from poing_reviewer.ai.gemini import GeminiProvider
-from poing_reviewer.ai.ollama import OllamaProvider
-from poing_reviewer.ai.openai_compatible import OpenAICompatibleProvider
-from poing_reviewer.ai.rag.factory import create_retriever
-from poing_reviewer.ai.rag.gemini_embedder import GeminiEmbedder
-from poing_reviewer.ai.rag.local_rag import LocalFileRetriever
-from poing_reviewer.ai.rag.ollama_embedder import OllamaEmbedder
-from poing_reviewer.ai.rag.openai_embedder import OpenAIEmbedder
-from poing_reviewer.ai.rag.vector_rag import VectorRAGRetriever
-from poing_reviewer.core.config import Config
+from poing_ai.ai.factory import create_ai_provider
+from poing_ai.ai.gemini import GeminiProvider
+from poing_ai.ai.ollama import OllamaProvider
+from poing_ai.ai.openai_compatible import OpenAICompatibleProvider
+from poing_ai.ai.rag.factory import create_retriever
+from poing_ai.ai.rag.gemini_embedder import GeminiEmbedder
+from poing_ai.ai.rag.local_rag import LocalFileRetriever
+from poing_ai.ai.rag.ollama_embedder import OllamaEmbedder
+from poing_ai.ai.rag.openai_embedder import OpenAIEmbedder
+from poing_ai.ai.rag.vector_rag import VectorRAGRetriever
+from poing_ai.core.config import Config
 
 
 class TestProviderFactory(unittest.TestCase):

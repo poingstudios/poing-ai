@@ -1,12 +1,12 @@
 import unittest
-from poing_reviewer.ai.false_positive import (
+from poing_ai.ai.false_positive import (
     add_footer_hint,
     fetch_thumbs_down_fingerprints,
     filter_action_version_false_positives,
     filter_speculative_false_positives,
     strip_footer,
 )
-from poing_reviewer.core.models import ReviewComment, ReviewFinding
+from poing_ai.core.models import ReviewComment, ReviewFinding
 
 
 class TestFalsePositive(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestFalsePositive(unittest.TestCase):
                 "comments": {
                     "nodes": [
                         {
-                            "author": {"login": "poing-reviewer[bot]"},
+                            "author": {"login": "poing-ai[bot]"},
                             "body": "False positive comment\n\n---\n> 👍 helpful · 👎 false positive",
                             "reactions": {"nodes": [{"content": "THUMBS_DOWN"}]},
                         }
@@ -33,7 +33,7 @@ class TestFalsePositive(unittest.TestCase):
                 },
             }
         ]
-        suppressed = fetch_thumbs_down_fingerprints(threads, bot_login="poing-reviewer[bot]")
+        suppressed = fetch_thumbs_down_fingerprints(threads, bot_login="poing-ai[bot]")
         self.assertEqual(len(suppressed), 1)
 
     def test_filter_speculative(self):

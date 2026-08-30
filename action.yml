@@ -1,4 +1,4 @@
-name: 'Poing Reviewer'
+name: 'Poing AI'
 description: 'AI Code Review, Triage, and Multi-Platform Dependency Automation powered by Google Gemini.'
 author: 'Poing Studios'
 branding:
@@ -92,7 +92,7 @@ runs:
         fi
       shell: bash
 
-    - name: Run Poing Reviewer
+    - name: Run Poing AI
       id: runner
       env:
         PYTHONPATH: ${{ github.action_path }}/src
@@ -118,5 +118,5 @@ runs:
         ISSUE_ACTION: ${{ github.event.action }}
         COMMENT_BODY: ${{ github.event.comment.body }}
         TRIGGER_ACTION: ${{ github.event.action }}
-      run: python ${{ github.action_path }}/poing_reviewer.py
+      run: python ${{ github.action_path }}/poing_ai.py
       shell: bash

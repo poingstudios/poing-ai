@@ -2,8 +2,8 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from poing_reviewer.ai.openai_compatible import OpenAICompatibleProvider, sanitize_ai_json_output
-from poing_reviewer.core.models import ReviewVerdict, TriagePriority
+from poing_ai.ai.openai_compatible import OpenAICompatibleProvider, sanitize_ai_json_output
+from poing_ai.core.models import ReviewVerdict, TriagePriority
 
 
 class TestOpenAIProvider(unittest.TestCase):

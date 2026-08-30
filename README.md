@@ -1,11 +1,11 @@
-# 🤖 Poing Reviewer
+# 🤖 Poing AI
 
-[![PyPI](https://img.shields.io/pypi/v/poing-reviewer.svg)](https://pypi.org/project/poing-reviewer/)
-[![Python Versions](https://img.shields.io/pypi/pyversions/poing-reviewer.svg)](https://pypi.org/project/poing-reviewer/)
-[![GitHub Actions Marketplace](https://img.shields.io/badge/Marketplace-Poing%20Reviewer-blue?logo=github)](https://github.com/marketplace/actions/poing-reviewer)
+[![PyPI](https://img.shields.io/pypi/v/poing-ai.svg)](https://pypi.org/project/poing-ai/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/poing-ai.svg)](https://pypi.org/project/poing-ai/)
+[![GitHub Actions Marketplace](https://img.shields.io/badge/Marketplace-Poing%20Reviewer-blue?logo=github)](https://github.com/marketplace/actions/poing-ai)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-**Poing Reviewer** is an AI-powered code review, issue triage, and multi-platform dependency automation bot powered by Google Gemini. Tailored for game engine plugins (**Godot**, **Unity**, **Unreal**) and multi-platform native mobile ecosystems (**Android**, **iOS**, **C#**, **C++**, **Rust**, **Python**).
+**Poing AI** is an AI-powered code review, issue triage, and multi-platform dependency automation bot powered by Google Gemini. Tailored for game engine plugins (**Godot**, **Unity**, **Unreal**) and multi-platform native mobile ecosystems (**Android**, **iOS**, **C#**, **C++**, **Rust**, **Python**).
 
 ---
 
@@ -25,7 +25,7 @@
 
 ## 🚀 Quick Start (GitHub Actions)
 
-Any developer or repository can use **Poing Reviewer** in 2 simple steps:
+Any developer or repository can use **Poing AI** in 2 simple steps:
 
 ---
 
@@ -38,12 +38,12 @@ Any developer or repository can use **Poing Reviewer** in 2 simple steps:
 
 ---
 
-### Step 2: Create Workflow (`.github/workflows/poing-reviewer.yml`)
+### Step 2: Create Workflow (`.github/workflows/poing-ai.yml`)
 
-Create `.github/workflows/poing-reviewer.yml` in your repository:
+Create `.github/workflows/poing-ai.yml` in your repository:
 
 ```yaml
-name: "Poing Reviewer"
+name: "Poing AI"
 
 on:
   pull_request_target:
@@ -91,7 +91,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Reviewer
-        uses: poingstudios/poing-reviewer@master
+        uses: poingstudios/poing-ai@master
         with:
           mode: review
           number: ${{ inputs.number }}
@@ -110,7 +110,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Run Triage
-        uses: poingstudios/poing-reviewer@master
+        uses: poingstudios/poing-ai@master
         with:
           mode: triage
           number: ${{ inputs.number }}
@@ -144,7 +144,7 @@ jobs:
 
       - name: Run Dependency Sync
         id: sync
-        uses: poingstudios/poing-reviewer@master
+        uses: poingstudios/poing-ai@master
         with:
           mode: sync
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -211,28 +211,28 @@ Configure optional repository rules in `.github/poing.json`:
 
 ## 💻 Local CLI Usage
 
-Install **Poing Reviewer** via `pip` or run instantly with `pipx`:
+Install **Poing AI** via `pip` or run instantly with `pipx`:
 
 ```bash
 # Install from PyPI
-pip install poing-reviewer
+pip install poing-ai
 
 # Or run instantly without installation
-pipx run poing-reviewer --local
+pipx run poing-ai --local
 ```
 
-> 💡 **Tip**: You can use either `poing-reviewer` or the shorthand aliases `prev` / `prv` (e.g. `prev --local`).
+> 💡 **Tip**: You can use either `poing-ai`, `poing-ai`, or the shorthand aliases `prev` / `prv` (e.g. `poing-ai --local` or `prev --local`).
 
 ### 1. Running with Local Models (Ollama)
 
-You can run Poing Reviewer 100% locally with zero cloud API keys using **[Ollama](https://ollama.com/)** and models like **DeepSeek-R1**, **DeepSeek-Coder**, **Qwen 2.5 Coder**, or **Llama 3.3**:
+You can run Poing AI 100% locally with zero cloud API keys using **[Ollama](https://ollama.com/)** and models like **DeepSeek-R1**, **DeepSeek-Coder**, **Qwen 2.5 Coder**, or **Llama 3.3**:
 
 ```bash
 # 1. Start Ollama and pull your preferred model
 ollama pull deepseek-r1:latest
 
 # 2. Run local review against your uncommitted changes
-poing-reviewer --local --provider ollama --model deepseek-r1:latest
+poing-ai --local --provider ollama --model deepseek-r1:latest
 ```
 
 ### 2. Running with Remote Models
@@ -240,59 +240,59 @@ poing-reviewer --local --provider ollama --model deepseek-r1:latest
 #### Google Gemini (Default)
 ```bash
 export GEMINI_API_KEY="your-gemini-api-key"
-poing-reviewer --local --provider gemini --model gemini-3.7-flash
+poing-ai --local --provider gemini --model gemini-3.7-flash
 ```
 
 #### DeepSeek API (Remote)
 ```bash
 export DEEPSEEK_API_KEY="your-deepseek-api-key"
-poing-reviewer --local --provider deepseek --model deepseek-chat
+poing-ai --local --provider deepseek --model deepseek-chat
 ```
 
 #### OpenAI / OpenAI-Compatible (Groq, OpenRouter, vLLM, LM Studio)
 ```bash
 export OPENAI_API_KEY="your-api-key"
-poing-reviewer --local --provider openai --model gpt-4o-mini
+poing-ai --local --provider openai --model gpt-4o-mini
 ```
 
 ### 3. Advanced Local Diff Options
 
 ```bash
 # Review only staged changes (git diff --cached)
-poing-reviewer --local --staged
+poing-ai --local --staged
 
 # Review against a specific commit or branch diff
-poing-reviewer --local --diff-target "origin/master...HEAD"
+poing-ai --local --diff-target "origin/master...HEAD"
 
 # Review specific modified file(s) only
-poing-reviewer --local --files src/core/git.py src/services/review_service.py
+poing-ai --local --files src/core/git.py src/services/review_service.py
 
 # Format output as JSON (for tooling integration)
-poing-reviewer --local --output json
+poing-ai --local --output json
 
 # Git Pre-commit hook mode (returns exit code 1 on CHANGES_REQUESTED)
-poing-reviewer --local --staged --fail-on-changes
+poing-ai --local --staged --fail-on-changes
 ```
 
 ### 4. Local Issue Triage & Dependency Sync
 
 ```bash
 # Simulate issue triage locally
-poing-reviewer --mode triage --local --issue-title "App crashes on launch" --issue-body "Null pointer on Android 14"
+poing-ai --mode triage --local --issue-title "App crashes on launch" --issue-body "Null pointer on Android 14"
 
 # Check and preview dependency updates (dry run)
-poing-reviewer --mode sync --local --dry-run
+poing-ai --mode sync --local --dry-run
 ```
 
 ---
 
 ## 🪝 Git Pre-Commit Hook Integration
 
-Add Poing Reviewer to your `.git/hooks/pre-commit` to review staged code before committing:
+Add Poing AI to your `.git/hooks/pre-commit` to review staged code before committing:
 
 ```bash
 #!/bin/sh
-poing-reviewer --local --staged --provider ollama --model deepseek-r1:latest --fail-on-changes
+poing-ai --local --staged --provider ollama --model deepseek-r1:latest --fail-on-changes
 ```
 
 ---
