@@ -1,0 +1,76 @@
+# Copyright 2026 Poing Studios
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Auto Release
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'pyproject.toml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  auto-release:
+    name: Check SemVer & Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Checkout Code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: 2. Extract Version from pyproject.toml
+        id: get-version
+        run: |
+          VERSION=$(grep -m 1 '^version = ' pyproject.toml | sed -E 's/version = "(.*)"/\1/')
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "TAG_NAME=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Extracted SemVer version: $VERSION"
+
+      - name: 3. Check if Tag Already Exists
+        id: check-tag
+        run: |
+          TAG="${{ steps.get-version.outputs.TAG_NAME }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1 || git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG already exists on remote. Skipping release."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG does not exist. Proceeding with release creation."
+          fi
+
+      - name: 4. Create GitHub Release & Update Major Tag
+        if: steps.check-tag.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.get-version.outputs.TAG_NAME }}
+          VERSION: ${{ steps.get-version.outputs.VERSION }}
+        run: |
+          # 1. Create GitHub Release with auto-generated notes
+          gh release create "$TAG" \
+            --title "$TAG — Poing AI Release" \
+            --generate-notes \
+            --target master
+
+          # 2. Update floating major tag (e.g. v1) so users can pin @v1
+          MAJOR_TAG="v$(echo $VERSION | cut -d. -f1)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -fa "$MAJOR_TAG" -m "Update $MAJOR_TAG pointer to $TAG"
+          git push -f origin "$MAJOR_TAG"
