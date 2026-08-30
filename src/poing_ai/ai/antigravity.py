@@ -89,7 +89,9 @@ class AntigravityAgentProvider(BaseAIProvider):
                     time.sleep(attempt * 3)
                     continue
 
-                logger.error(f"Antigravity agent API error ({resp.status_code}): {resp.text}")
+                logger.error(
+                    f"Antigravity agent API error (status={resp.status_code}, reason={resp.reason}, attempt={attempt})"
+                )
                 return None
             except Exception as e:
                 logger.warning(f"Antigravity agent request attempt {attempt} failed: {e}")
