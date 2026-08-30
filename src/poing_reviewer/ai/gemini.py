@@ -142,15 +142,17 @@ class GeminiProvider(BaseAIProvider):
 
         if response_schema:
             payload["generationConfig"]["responseMimeType"] = "application/json"
-            payload["generationConfig"]["responseSchema"] = response_schema
+            # Gemma models on AI Studio do not support strict responseSchema
+            if "gemma" not in model_name.lower():
+                payload["generationConfig"]["responseSchema"] = response_schema
 
-        for attempt in range(2):
+        for attempt in range(3):
             try:
                 resp = requests.post(
                     url,
                     json=payload,
                     headers={"Content-Type": "application/json"},
-                    timeout=30,
+                    timeout=45,
                 )
                 if resp.status_code == 200:
                     data = resp.json()
@@ -164,8 +166,8 @@ class GeminiProvider(BaseAIProvider):
                             feedback += part.get("text", "")
                     return feedback.strip() if feedback.strip() else None
 
-                if resp.status_code in (429, 503) and attempt < 1:
-                    wait = 3
+                if resp.status_code in (429, 503) and attempt < 2:
+                    wait = 3 * (attempt + 1)
                     logger.warning(f"Model {model_name} busy ({resp.status_code}), retry in {wait}s...")
                     time.sleep(wait)
                     continue
@@ -173,11 +175,11 @@ class GeminiProvider(BaseAIProvider):
                 logger.error(f"API error ({model_name}): {resp.status_code} {resp.text}")
                 return None
             except requests.exceptions.Timeout:
-                logger.warning(f"Model {model_name} timed out after 30s. Failing over to next fallback model...")
+                logger.warning(f"Model {model_name} timed out after 45s. Failing over to next fallback model...")
                 return None
             except requests.exceptions.RequestException as e:
                 logger.error(f"Request failed for {model_name}: {e}")
-                if attempt < 1:
+                if attempt < 2:
                     time.sleep(2)
                     continue
                 return None

@@ -27,7 +27,7 @@ FALLBACK_MODELS = [
     "gemini-3.5-flash-lite",
     "gemini-2.5-flash",
     "gemma-4-31b-it",
-    "gemma-4-26b-it",
+    "gemma-4-26b",
 ]
 
 OLLAMA_FALLBACK_MODELS = [
@@ -37,6 +37,18 @@ OLLAMA_FALLBACK_MODELS = [
     "llama3.3:latest",
     "codellama:latest",
 ]
+
+
+def get_model_max_chars(model_name: str, requested_max: int = 100000) -> int:
+    """Returns safe character limit per diff batch based on model token capacity."""
+    m = model_name.lower()
+    if "gemma" in m:
+        # Gemma Free Tier has a strict 16k TPM limit. Safe char limit: ~20,000 chars (~5k tokens)
+        return min(requested_max, 20000)
+    elif any(k in m for k in ["deepseek-coder:6.7b", "qwen2.5-coder:7b", "codellama", "mistral"]):
+        # Small local models with 8k-16k context window
+        return min(requested_max, 25000)
+    return requested_max
 
 OPENAI_FALLBACK_MODELS = [
     "gpt-4o-mini",

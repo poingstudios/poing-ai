@@ -36,6 +36,7 @@ from poing_reviewer.core.config import (
     VERDICT_PRIORITY,
     Config,
     fingerprint,
+    get_model_max_chars,
 )
 from poing_reviewer.core.git import (
     annotate_diff,
@@ -176,7 +177,8 @@ class ReviewService:
 
         # Diff Batching
         file_blocks = split_diff_by_file(diff)
-        batches = split_batches(file_blocks, self.cfg.MAX_CHARS)[:self.cfg.MAX_BATCHES]
+        effective_max_chars = get_model_max_chars(self.cfg.PRIMARY_MODEL, self.cfg.MAX_CHARS)
+        batches = split_batches(file_blocks, effective_max_chars)[:self.cfg.MAX_BATCHES]
         total_batches = len(batches)
         logger.info(f"Diff analyzed: {len(file_blocks)} file(s), {len(diff)} chars. Split into {total_batches} review batch(es).")
 
