@@ -48,6 +48,37 @@ name: "Poing AI"
 on:
   pull_request_target:
     types: [opened, ready_for_review]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: 1. Checkout Code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: 2. Run Poing AI
+        uses: poingstudios/poing-ai@v1
+        with:
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+```
+
+<details>
+<summary>⚡ <b>Full Workflow (Review + Triage + Comment Triggers)</b></summary>
+<br>
+
+If you want automatic **Issue Triage** and **On-demand PR Comment Triggers** (`/review`):
+
+```yaml
+name: "Poing AI"
+
+on:
+  pull_request_target:
+    types: [opened, ready_for_review]
   issues:
     types: [opened]
   issue_comment:
@@ -120,6 +151,8 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 ```
+
+</details>
 
 ---
 
