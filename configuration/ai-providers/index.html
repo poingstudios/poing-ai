@@ -595,6 +595,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guides/auto-fix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Autonomous Code Repair
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guides/rag-guidelines/" class="md-nav__link">
         
   
@@ -915,10 +943,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-google-gemini-default" class="md-nav__link">
+  <a href="#1-google-antigravity-managed-agent-provider-antigravity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Google Gemini (Default)
+        1. Google Antigravity Managed Agent (provider: antigravity)
       
     </span>
   </a>
@@ -926,10 +954,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-local-ollama-vllm-offline-private" class="md-nav__link">
+  <a href="#2-google-gemini-default" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Local Ollama &amp; vLLM (Offline / Private)
+        2. Google Gemini (Default)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-local-ollama-vllm-offline-private" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Local Ollama &amp; vLLM (Offline / Private)
       
     </span>
   </a>
@@ -1045,10 +1084,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-google-gemini-default" class="md-nav__link">
+  <a href="#1-google-antigravity-managed-agent-provider-antigravity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Google Gemini (Default)
+        1. Google Antigravity Managed Agent (provider: antigravity)
       
     </span>
   </a>
@@ -1056,10 +1095,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-local-ollama-vllm-offline-private" class="md-nav__link">
+  <a href="#2-google-gemini-default" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Local Ollama &amp; vLLM (Offline / Private)
+        2. Google Gemini (Default)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-local-ollama-vllm-offline-private" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Local Ollama &amp; vLLM (Offline / Private)
       
     </span>
   </a>
@@ -1100,22 +1150,32 @@
 <h1 id="ai-providers-model-selection">AI Providers &amp; Model Selection<a class="headerlink" href="#ai-providers-model-selection" title="Permanent link">&para;</a></h1>
 <p>Poing AI supports multiple AI backends, from cloud APIs to 100% private local models.</p>
 <hr />
-<h2 id="1-google-gemini-default">1. Google Gemini (Default)<a class="headerlink" href="#1-google-gemini-default" title="Permanent link">&para;</a></h2>
-<p>Powered by the official Google Gemini REST API.</p>
+<h2 id="1-google-antigravity-managed-agent-provider-antigravity">1. Google Antigravity Managed Agent (<code>provider: antigravity</code>)<a class="headerlink" href="#1-google-antigravity-managed-agent-provider-antigravity" title="Permanent link">&para;</a></h2>
+<p>Powered by Google's <strong>Interactions API</strong> (<code>antigravity-preview-05-2026</code>) featuring remote Linux sandboxing, multi-step autonomous tool use, and self-healing test execution.</p>
 <ul>
-<li><strong>Primary Models</strong>: <code>gemini-2.5-flash</code>, <code>gemini-3.7-flash</code>, <code>gemini-3.5-flash</code>, <code>gemma-4-31b-it</code></li>
+<li><strong>Primary Agent</strong>: <code>antigravity-preview-05-2026</code></li>
 <li><strong>Setup</strong>:
   <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GEMINI_API_KEY</span><span class="o">=</span><span class="s2">"your-gemini-key"</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>antigravity<span class="w"> </span>--fix
 </span></code></pre></div></li>
 </ul>
 <hr />
-<h2 id="2-local-ollama-vllm-offline-private">2. Local Ollama &amp; vLLM (Offline / Private)<a class="headerlink" href="#2-local-ollama-vllm-offline-private" title="Permanent link">&para;</a></h2>
+<h2 id="2-google-gemini-default">2. Google Gemini (Default)<a class="headerlink" href="#2-google-gemini-default" title="Permanent link">&para;</a></h2>
+<p>Powered by the official Google Gemini REST API.</p>
+<ul>
+<li><strong>Primary Models</strong>: <code>gemini-3.7-flash</code>, <code>gemini-3.5-flash</code></li>
+<li><strong>Setup</strong>:
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GEMINI_API_KEY</span><span class="o">=</span><span class="s2">"your-gemini-key"</span>
+</span></code></pre></div></li>
+</ul>
+<hr />
+<h2 id="3-local-ollama-vllm-offline-private">3. Local Ollama &amp; vLLM (Offline / Private)<a class="headerlink" href="#3-local-ollama-vllm-offline-private" title="Permanent link">&para;</a></h2>
 <p>Run completely offline on your own machine without sending code to the cloud.</p>
 <ul>
 <li><strong>Supported Models</strong>: <code>deepseek-r1:latest</code>, <code>deepseek-coder:6.7b</code>, <code>qwen2.5-coder:7b</code>, <code>llama3.3:latest</code></li>
 <li><strong>Setup</strong>:
-  <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ollama<span class="w"> </span>serve
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>deepseek-r1:latest
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ollama<span class="w"> </span>serve
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>deepseek-r1:latest
 </span></code></pre></div></li>
 </ul>
 <hr />
@@ -1124,12 +1184,12 @@
 <ul>
 <li><strong>Supported Models</strong>: <code>gpt-4o-mini</code>, <code>gpt-4o</code>, <code>deepseek-chat</code>, <code>deepseek-reasoner</code></li>
 <li><strong>Setup (DeepSeek)</strong>:
-  <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">DEEPSEEK_API_KEY</span><span class="o">=</span><span class="s2">"sk-..."</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>deepseek<span class="w"> </span>--model<span class="w"> </span>deepseek-chat
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">DEEPSEEK_API_KEY</span><span class="o">=</span><span class="s2">"sk-..."</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>deepseek<span class="w"> </span>--model<span class="w"> </span>deepseek-chat
 </span></code></pre></div></li>
 <li><strong>Setup (Custom Base URL)</strong>:
-  <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPENAI_API_KEY</span><span class="o">=</span><span class="s2">"sk-..."</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>openai<span class="w"> </span>--api-base<span class="w"> </span><span class="s2">"https://openrouter.ai/api/v1"</span><span class="w"> </span>--model<span class="w"> </span><span class="s2">"anthropic/claude-3.5-sonnet"</span>
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPENAI_API_KEY</span><span class="o">=</span><span class="s2">"sk-..."</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>openai<span class="w"> </span>--api-base<span class="w"> </span><span class="s2">"https://openrouter.ai/api/v1"</span><span class="w"> </span>--model<span class="w"> </span><span class="s2">"anthropic/claude-3.5-sonnet"</span>
 </span></code></pre></div></li>
 </ul>
 
