@@ -61,7 +61,7 @@ class AntigravityAgentProvider(BaseAIProvider):
         }
 
         logger.info(f"Dispatching task to Antigravity Agent ({target_agent})...")
-        for attempt in range(1, 4):
+        for attempt in range(1, 6):
             try:
                 resp = requests.post(url, json=payload, headers=headers, timeout=timeout)
                 if resp.status_code == 200:
@@ -85,8 +85,9 @@ class AntigravityAgentProvider(BaseAIProvider):
                     return output_text or json.dumps(data)
 
                 if resp.status_code in (429, 500, 503):
-                    logger.warning(f"Antigravity agent busy ({resp.status_code}), retrying in {attempt * 3}s...")
-                    time.sleep(attempt * 3)
+                    sleep_time = attempt * 5
+                    logger.warning(f"Antigravity agent busy ({resp.status_code}), retrying in {sleep_time}s (attempt {attempt}/5)...")
+                    time.sleep(sleep_time)
                     continue
 
                 logger.error(
@@ -95,7 +96,7 @@ class AntigravityAgentProvider(BaseAIProvider):
                 return None
             except Exception as e:
                 logger.warning(f"Antigravity agent request attempt {attempt} failed: {e}")
-                time.sleep(attempt * 2)
+                time.sleep(attempt * 3)
 
         return None
 
