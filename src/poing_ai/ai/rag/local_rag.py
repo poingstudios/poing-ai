@@ -25,8 +25,13 @@ logger = get_logger("ai.rag.local")
 class LocalFileRetriever(BaseRetriever):
     """Retrieves repository documentation and guidelines from local markdown files using hierarchical AST breadcrumbs."""
 
-    def __init__(self, root_dir: Optional[Path] = None):
+    def __init__(
+        self,
+        root_dir: Optional[Path] = None,
+        guidelines_dirs: Optional[List[str]] = None,
+    ):
         self.root_dir = root_dir or Path.cwd()
+        self.guidelines_dirs = guidelines_dirs or ["docs", ".agents", "guidelines", "rules"]
 
     def retrieve(self, query: str, top_k: int = 6) -> List[RetrievedDocument]:
         candidate_paths = [
@@ -34,17 +39,21 @@ class LocalFileRetriever(BaseRetriever):
             self.root_dir / ".github" / "AGENTS.md",
             self.root_dir / "CONTRIBUTING.md",
             self.root_dir / ".github" / "CONTRIBUTING.md",
+            self.root_dir / "GEMINI.md",
+            self.root_dir / "CLAUDE.md",
         ]
 
-        # Also search docs/ and .agents/ directories if present
-        for sub_dir in ["docs", ".agents"]:
+        # Search configured guidelines directories
+        for sub_dir in self.guidelines_dirs:
             dpath = self.root_dir / sub_dir
             if dpath.exists() and dpath.is_dir():
-                for md_file in list(dpath.glob("**/*.md"))[:15]:
-                    candidate_paths.append(md_file)
+                for md_file in list(dpath.glob("**/*.md"))[:20]:
+                    if md_file not in candidate_paths:
+                        candidate_paths.append(md_file)
 
         query_tokens = set(query.lower().split())
         scored_sections: List[tuple[float, RetrievedDocument]] = []
+        seen_contents = set()
 
         for path in candidate_paths:
             if not (path.exists() and path.is_file()):
@@ -59,6 +68,11 @@ class LocalFileRetriever(BaseRetriever):
                 sections = parse_markdown_with_breadcrumbs(rel_name, content)
 
                 for sec in sections:
+                    # Deduplicate exact content blocks
+                    if sec.content in seen_contents:
+                        continue
+                    seen_contents.add(sec.content)
+
                     sec_lower = sec.content.lower()
                     sec_breadcrumb_lower = sec.breadcrumb.lower()
 

@@ -32,11 +32,21 @@ def create_retriever(config: Config, root_dir: Optional[Path] = None) -> BaseRet
     base_dir = root_dir or Path.cwd()
     provider_name = (config.PROVIDER or "").lower().strip()
 
+    rag_cfg = config.file_config.get("review", {}).get("rag", {})
+    guidelines_dirs = rag_cfg.get("guidelines_dirs")
+    rag_provider = rag_cfg.get("provider", "").lower().strip()
+
+    # If explicit local mode is set in poing.json
+    if rag_provider == "local":
+        logger.info("Using LocalFileRetriever (Markdown file scanner)")
+        return LocalFileRetriever(root_dir=base_dir, guidelines_dirs=guidelines_dirs)
+
     if config.GEMINI_API_KEY:
         logger.info("Using Vector RAG with GeminiEmbedder")
         return VectorRAGRetriever(
             embedder=GeminiEmbedder(api_key=config.GEMINI_API_KEY),
             root_dir=base_dir,
+            guidelines_dirs=guidelines_dirs,
         )
 
     if provider_name == "ollama" or (config.API_BASE and "11434" in config.API_BASE):
@@ -44,6 +54,7 @@ def create_retriever(config: Config, root_dir: Optional[Path] = None) -> BaseRet
         return VectorRAGRetriever(
             embedder=OllamaEmbedder(base_url=config.API_BASE),
             root_dir=base_dir,
+            guidelines_dirs=guidelines_dirs,
         )
 
     if config.OPENAI_API_KEY:
@@ -54,7 +65,8 @@ def create_retriever(config: Config, root_dir: Optional[Path] = None) -> BaseRet
                 base_url=config.API_BASE,
             ),
             root_dir=base_dir,
+            guidelines_dirs=guidelines_dirs,
         )
 
     logger.info("Using LocalFileRetriever (Markdown file scanner)")
-    return LocalFileRetriever(root_dir=base_dir)
+    return LocalFileRetriever(root_dir=base_dir, guidelines_dirs=guidelines_dirs)

@@ -41,9 +41,11 @@ class VectorRAGRetriever(BaseRetriever):
         self,
         embedder: BaseEmbedder,
         root_dir: Optional[Path] = None,
+        guidelines_dirs: Optional[List[str]] = None,
     ):
         self.embedder = embedder
         self.root_dir = root_dir or Path.cwd()
+        self.guidelines_dirs = guidelines_dirs or ["docs", ".agents", "guidelines", "rules"]
         self._index: List[Tuple[RetrievedDocument, List[float]]] = []
         self._indexed = False
 
@@ -53,12 +55,17 @@ class VectorRAGRetriever(BaseRetriever):
             self.root_dir / ".github" / "AGENTS.md",
             self.root_dir / "CONTRIBUTING.md",
             self.root_dir / ".github" / "CONTRIBUTING.md",
+            self.root_dir / "GEMINI.md",
+            self.root_dir / "CLAUDE.md",
         ]
 
-        docs_dir = self.root_dir / "docs"
-        if docs_dir.exists() and docs_dir.is_dir():
-            for md_file in list(docs_dir.glob("**/*.md"))[:10]:
-                candidate_paths.append(md_file)
+        # Search configured guidelines directories
+        for sub_dir in self.guidelines_dirs:
+            dpath = self.root_dir / sub_dir
+            if dpath.exists() and dpath.is_dir():
+                for md_file in list(dpath.glob("**/*.md"))[:20]:
+                    if md_file not in candidate_paths:
+                        candidate_paths.append(md_file)
 
         existing_paths = [p for p in candidate_paths if p.exists() and p.is_file()]
         logger.info(f"Building vector index for {len(existing_paths)} documentation and guideline file(s)...")
