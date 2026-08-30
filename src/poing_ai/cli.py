@@ -22,6 +22,7 @@ from typing import List, Optional
 warnings.filterwarnings("ignore", message=".*urllib3 v2 only supports OpenSSL.*")
 warnings.filterwarnings("ignore", message=".*NotOpenSSLWarning.*")
 
+from poing_ai import __version__
 from poing_ai.core.config import Config
 from poing_ai.core.logging import get_logger
 from poing_ai.services.review_service import ReviewService
@@ -33,8 +34,14 @@ logger = get_logger("cli")
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="poing-ai",
+        prog="poing",
         description="Poing AI: AI Code Review, Triage, and Multi-Platform Dependency Automation.",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"poing-ai {__version__}",
     )
     parser.add_argument(
         "--mode",
