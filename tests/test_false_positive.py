@@ -36,6 +36,30 @@ class TestFalsePositive(unittest.TestCase):
         suppressed = fetch_thumbs_down_fingerprints(threads, bot_login="poing-ai[bot]")
         self.assertEqual(len(suppressed), 1)
 
+    def test_fetch_thumbs_down_with_none_author(self):
+        threads = [
+            {
+                "path": "test.gd",
+                "line": 15,
+                "comments": {
+                    "nodes": [
+                        {
+                            "author": None,
+                            "body": "Comment from deleted user\n\n---\n> 👍 helpful · 👎 false positive",
+                            "reactions": {"nodes": [{"content": "THUMBS_DOWN"}]},
+                        },
+                        {
+                            "author": {"login": None},
+                            "body": "Comment from anonymous user",
+                            "reactions": {"nodes": [{"content": "THUMBS_DOWN"}]},
+                        },
+                    ]
+                },
+            }
+        ]
+        suppressed = fetch_thumbs_down_fingerprints(threads, bot_login="poing-ai[bot]")
+        self.assertEqual(len(suppressed), 1)
+
     def test_filter_speculative(self):
         findings = [
             ReviewFinding(severity="🟡", file="test.gd", finding="Please ensure other parts of the file call this safely."),

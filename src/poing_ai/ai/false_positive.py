@@ -33,12 +33,16 @@ def add_footer_hint(body: str) -> str:
     return body.rstrip() + COMMENT_FOOTER_HINT
 
 
-def _is_bot_comment_by_login(author_login: str, bot_login: Optional[str]) -> bool:
-    if not author_login:
-        return False
-    if bot_login and author_login.lower() == bot_login.lower():
+def _is_bot_comment_by_login(author_login: Optional[str], bot_login: Optional[str], body: Optional[str] = "") -> bool:
+    login_str = (author_login or "").lower()
+    body_str = body or ""
+    if bot_login and login_str == bot_login.lower():
         return True
-    return "bot" in author_login.lower()
+    if "bot" in login_str or "poing-ai" in login_str:
+        return True
+    if "👍 helpful · 👎 false positive" in body_str or "About Poing AI" in body_str:
+        return True
+    return False
 
 
 def fetch_thumbs_down_fingerprints(threads: List[Dict[str, Any]], bot_login: Optional[str]) -> Set[str]:
@@ -52,7 +56,8 @@ def fetch_thumbs_down_fingerprints(threads: List[Dict[str, Any]], bot_login: Opt
             if not comment:
                 continue
             author_login = (comment.get("author") or {}).get("login", "")
-            if not _is_bot_comment_by_login(author_login, bot_login):
+            raw_body = comment.get("body", "")
+            if not _is_bot_comment_by_login(author_login, bot_login, body=raw_body):
                 continue
 
             reactions = (comment.get("reactions") or {}).get("nodes") or []

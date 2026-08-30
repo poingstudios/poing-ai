@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from poing_ai.ai.rag.base import BaseEmbedder, BaseRetriever, RetrievedDocument
+from poing_ai.ai.rag.cache import EmbeddingsCache, compute_content_hash
+from poing_ai.ai.rag.local_rag import LocalFileRetriever
 from poing_ai.ai.rag.markdown_parser import parse_markdown_with_breadcrumbs
 from poing_ai.core.logging import get_logger
 
@@ -42,10 +44,12 @@ class VectorRAGRetriever(BaseRetriever):
         embedder: BaseEmbedder,
         root_dir: Optional[Path] = None,
         guidelines_dirs: Optional[List[str]] = None,
+        cache_dir: Optional[Path] = None,
     ):
         self.embedder = embedder
         self.root_dir = root_dir or Path.cwd()
         self.guidelines_dirs = guidelines_dirs or ["docs", ".agents", "guidelines", "rules"]
+        self.cache = EmbeddingsCache(cache_dir=cache_dir or (self.root_dir / ".poing" / "cache"))
         self._index: List[Tuple[RetrievedDocument, List[float]]] = []
         self._indexed = False
 
@@ -70,7 +74,12 @@ class VectorRAGRetriever(BaseRetriever):
         existing_paths = [p for p in candidate_paths if p.exists() and p.is_file()]
         logger.info(f"Building vector index for {len(existing_paths)} documentation and guideline file(s)...")
 
+        model_name = getattr(self.embedder, "primary_model", "") or self.embedder.__class__.__name__
+
         for path in existing_paths:
+            if getattr(self.embedder, "_exhausted", None) is True:
+                logger.info("ℹ️ Embedding API exhausted; aborting vector index build.")
+                break
             try:
                 content = path.read_text(encoding="utf-8", errors="replace").strip()
                 if not content:
@@ -79,7 +88,16 @@ class VectorRAGRetriever(BaseRetriever):
                 sections = parse_markdown_with_breadcrumbs(rel_source, content)
 
                 for sec in sections:
-                    emb = self.embedder.embed_text(sec.content)
+                    sec_hash = compute_content_hash(sec.content, model_name=model_name)
+                    emb = self.cache.get(sec_hash)
+
+                    if not emb:
+                        if getattr(self.embedder, "_exhausted", None) is True:
+                            break
+                        emb = self.embedder.embed_text(sec.content)
+                        if emb:
+                            self.cache.set(sec_hash, emb, source=sec.breadcrumb)
+
                     if emb:
                         doc = RetrievedDocument(
                             source=sec.breadcrumb,
@@ -90,6 +108,7 @@ class VectorRAGRetriever(BaseRetriever):
             except Exception as e:
                 logger.warning(f"Error indexing doc file {path}: {e}")
 
+        self.cache.save()
         self._indexed = True
         if self._index:
             dims = len(self._index[0][1])
@@ -102,7 +121,8 @@ class VectorRAGRetriever(BaseRetriever):
             self._build_index()
 
         if not self._index:
-            return []
+            fallback = LocalFileRetriever(root_dir=self.root_dir, guidelines_dirs=self.guidelines_dirs)
+            return fallback.retrieve(query, top_k=top_k)
 
         logger.info(f"Querying vector index for relevant guidelines...")
         query_emb = self.embedder.embed_text(query)

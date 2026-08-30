@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Poing AI Cache
+.poing/
+.poing_cache/

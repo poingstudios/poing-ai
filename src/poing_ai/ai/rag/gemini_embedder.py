@@ -42,9 +42,10 @@ class GeminiEmbedder(BaseEmbedder):
         models = [primary_model] + (fallback_models or FALLBACK_EMBEDDING_MODELS)
         seen = set()
         self.models_to_try = [m for m in models if not (m in seen or seen.add(m))]
+        self._exhausted = False
 
     def embed_text(self, text: str) -> List[float]:
-        if not self.api_key or not text.strip():
+        if self._exhausted or not self.api_key or not text.strip():
             return []
 
         for api_ver in EMBEDDING_API_VERSIONS:
@@ -60,13 +61,13 @@ class GeminiEmbedder(BaseEmbedder):
                     "x-goog-api-key": self.api_key,
                 }
 
-                for attempt in range(3):
+                for attempt in range(2):
                     try:
                         resp = requests.post(
                             url,
                             json=payload,
                             headers=headers,
-                            timeout=20,
+                            timeout=15,
                         )
                         if resp.status_code == 200:
                             data = resp.json()
@@ -74,16 +75,27 @@ class GeminiEmbedder(BaseEmbedder):
                             if embedding:
                                 return embedding
 
-                        if resp.status_code in (429, 503) and attempt < 2:
-                            time.sleep(2 ** attempt * 2)
-                            continue
+                        if resp.status_code in (401, 403):
+                            logger.warning(f"Embedding API auth error ({model}): {resp.status_code}")
+                            self._exhausted = True
+                            return []
+
+                        if resp.status_code == 429:
+                            resp_text = resp.text.lower()
+                            if "quota" in resp_text or "resource_exhausted" in resp_text:
+                                logger.warning(f"Embedding API quota exceeded ({model}): {resp.status_code}. Disabling embeddings for this run.")
+                                self._exhausted = True
+                                return []
+                            if attempt < 1:
+                                time.sleep(1)
+                                continue
 
                         logger.warning(f"Embedding API error ({model}): {resp.status_code} {resp.text[:150]}")
                         break
                     except Exception as e:
                         logger.warning(f"Embedding request failed for {model}: {e}")
-                        if attempt < 2:
-                            time.sleep(2 ** attempt * 2)
+                        if attempt < 1:
+                            time.sleep(1)
                             continue
                         break
 

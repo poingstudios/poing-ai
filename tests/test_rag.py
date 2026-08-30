@@ -140,6 +140,27 @@ Do not use class_name.
         self.assertIn("preload", query)
         self.assertIn("type inference", query)
 
+    def test_embeddings_cache(self):
+        from poing_ai.ai.rag.cache import EmbeddingsCache, compute_content_hash
+
+        cache_dir = self.test_dir / ".poing" / "cache"
+        cache = EmbeddingsCache(cache_dir=cache_dir)
+
+        h = compute_content_hash("Hello World", model_name="gemini-embedding-2-preview")
+        self.assertIsNone(cache.get(h))
+
+        sample_vec = [0.1, 0.2, 0.3]
+        cache.set(h, sample_vec, source="README.md")
+        self.assertEqual(cache.get(h), sample_vec)
+
+        # Persist to disk
+        cache.save()
+        self.assertTrue((cache_dir / "embeddings.json").exists())
+
+        # Reload in new instance
+        cache2 = EmbeddingsCache(cache_dir=cache_dir)
+        self.assertEqual(cache2.get(h), sample_vec)
+
 
 if __name__ == "__main__":
     unittest.main()
