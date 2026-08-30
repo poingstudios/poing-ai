@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 
 def build_review_prompt(
@@ -23,6 +23,8 @@ def build_review_prompt(
     batch_label: str = "",
     verified_actions: Optional[Dict[str, bool]] = None,
     file_contents: Optional[Dict[str, str]] = None,
+    test_contents: Optional[Dict[str, str]] = None,
+    symbol_impacts: Optional[Dict[str, List[str]]] = None,
 ) -> str:
     action_info = ""
     if verified_actions:
@@ -49,6 +51,33 @@ def build_review_prompt(
                 "\n## Full Source Code of Modified Files (Ground Truth)\n"
                 "Use the full file contents below to verify class declarations, method implementations, and symbol references across the whole file. Never speculate about code you cannot see in the diff—verify against this full file source.\n\n"
                 + "\n\n".join(files_blocks)
+                + "\n"
+            )
+
+    tests_context = ""
+    if test_contents:
+        test_blocks = []
+        for tpath, tcontent in test_contents.items():
+            test_blocks.append(f"### Associated Test Suite: `{tpath}`\n```\n{tcontent}\n```")
+        if test_blocks:
+            tests_context = (
+                "\n## Associated Unit Tests & Test Suites (Coverage Context)\n"
+                "Use the test suites below to check whether the modified code is covered by tests or if new behavior should be tested.\n\n"
+                + "\n\n".join(test_blocks)
+                + "\n"
+            )
+
+    impact_context = ""
+    if symbol_impacts:
+        impact_lines = []
+        for sym, usages in symbol_impacts.items():
+            usage_bullets = "\n".join(f"  - {u}" for u in usages)
+            impact_lines.append(f"- **`{sym}`**:\n{usage_bullets}")
+        if impact_lines:
+            impact_context = (
+                "\n## Cross-File Call Sites & Dependency Usages (Impact Analysis)\n"
+                "The following symbols modified in this diff are referenced by other files across the repository. Verify that modifications do not break these external callers:\n\n"
+                + "\n".join(impact_lines)
                 + "\n"
             )
 
@@ -91,6 +120,8 @@ Return valid JSON with:
 {engine_section}
 {action_info}
 {files_context}
+{tests_context}
+{impact_context}
 ## Annotated Diff
 
 ```diff

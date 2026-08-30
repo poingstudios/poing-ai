@@ -28,6 +28,8 @@ from poing_ai.ai.false_positive import (
 )
 from poing_ai.ai.prompts.review import build_review_prompt
 from poing_ai.ai.rag.factory import create_retriever
+from poing_ai.ai.rag.symbol_impact import SymbolImpactRetriever
+from poing_ai.ai.rag.test_pairing import TestPairingRetriever
 from poing_ai.ai.thread_resolver import resolve_fixed_threads
 from poing_ai.core.config import (
     GITHUB_EVENT_MAP,
@@ -88,6 +90,8 @@ class ReviewService:
         self.ai = ai_provider or create_ai_provider(config)
         self.client = github_client or GitHubClient(token=config.GITHUB_TOKEN)
         self.retriever = create_retriever(config, root_dir=self.root_dir)
+        self.test_retriever = TestPairingRetriever(root_dir=self.root_dir)
+        self.symbol_retriever = SymbolImpactRetriever(root_dir=self.root_dir)
 
     def run(self) -> ReviewResult:
         logger.info(f"Starting review (local={self.cfg.LOCAL}, provider={self.cfg.PROVIDER})...")
@@ -205,6 +209,10 @@ class ReviewService:
                 else None
             )
 
+            test_contents = self.test_retriever.find_associated_tests(batch_file_paths)
+            symbols = self.symbol_retriever.extract_symbols_from_diff(batch_diff)
+            symbol_impacts = self.symbol_retriever.find_cross_file_usages(symbols, modified_files=batch_file_paths)
+
             prompt = build_review_prompt(
                 pr_title=self.cfg.PR_TITLE or "Local Code Review",
                 annotated_diff=annotated,
@@ -213,6 +221,8 @@ class ReviewService:
                 batch_label=batch_label,
                 verified_actions=verified_actions,
                 file_contents=file_contents,
+                test_contents=test_contents,
+                symbol_impacts=symbol_impacts,
             )
 
             result = self.ai.generate_review(prompt)

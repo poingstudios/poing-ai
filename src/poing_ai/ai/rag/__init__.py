@@ -18,6 +18,8 @@ from poing_ai.ai.rag.gemini_embedder import GeminiEmbedder
 from poing_ai.ai.rag.local_rag import LocalFileRetriever
 from poing_ai.ai.rag.ollama_embedder import OllamaEmbedder
 from poing_ai.ai.rag.openai_embedder import OpenAIEmbedder
+from poing_ai.ai.rag.symbol_impact import SymbolImpactRetriever
+from poing_ai.ai.rag.test_pairing import TestPairingRetriever
 from poing_ai.ai.rag.vector_rag import VectorRAGRetriever
 
 __all__ = [
@@ -28,6 +30,8 @@ __all__ = [
     "LocalFileRetriever",
     "OllamaEmbedder",
     "OpenAIEmbedder",
+    "SymbolImpactRetriever",
+    "TestPairingRetriever",
     "VectorRAGRetriever",
     "create_retriever",
 ]
