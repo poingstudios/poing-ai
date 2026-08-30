@@ -34,6 +34,26 @@ inputs:
     description: 'Base git reference branch for diff'
     required: false
     default: ''
+  provider:
+    description: 'AI provider: gemini, openai, deepseek, ollama, groq, openrouter, or auto'
+    required: false
+    default: 'gemini'
+  api-key:
+    description: 'Generic AI API key'
+    required: false
+    default: ''
+  openai-api-key:
+    description: 'OpenAI API key'
+    required: false
+    default: ''
+  deepseek-api-key:
+    description: 'DeepSeek API key'
+    required: false
+    default: ''
+  api-base:
+    description: 'Custom API base URL (e.g. for Ollama or custom OpenAI-compatible endpoints)'
+    required: false
+    default: ''
   number:
     description: 'PR or Issue number (for manual workflow_dispatch)'
     required: false
@@ -78,7 +98,12 @@ runs:
         PYTHONPATH: ${{ github.action_path }}/src
         MODE: ${{ inputs.mode }}
         GITHUB_TOKEN: ${{ inputs.github-token || github.token }}
+        AI_PROVIDER: ${{ inputs.provider }}
+        AI_API_KEY: ${{ inputs.api-key }}
         GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
+        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+        DEEPSEEK_API_KEY: ${{ inputs.deepseek-api-key }}
+        AI_BASE_URL: ${{ inputs.api-base }}
         MODEL_NAME: ${{ inputs.model }}
         MAX_CHARS: ${{ inputs.max-chars }}
         MAX_BATCHES: ${{ inputs.max-batches }}

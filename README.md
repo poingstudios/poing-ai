@@ -1,6 +1,8 @@
 # 🤖 Poing Reviewer
 
-[![CI](https://github.com/poingstudios/poing-reviewer/actions/workflows/ci.yml/badge.svg)](https://github.com/poingstudios/poing-reviewer/actions)
+[![PyPI](https://img.shields.io/pypi/v/poing-reviewer.svg)](https://pypi.org/project/poing-reviewer/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/poing-reviewer.svg)](https://pypi.org/project/poing-reviewer/)
+[![GitHub Actions Marketplace](https://img.shields.io/badge/Marketplace-Poing%20Reviewer-blue?logo=github)](https://github.com/marketplace/actions/poing-reviewer)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 **Poing Reviewer** is an AI-powered code review, issue triage, and multi-platform dependency automation bot powered by Google Gemini. Tailored for game engine plugins (**Godot**, **Unity**, **Unreal**) and multi-platform native mobile ecosystems (**Android**, **iOS**, **C#**, **C++**, **Rust**, **Python**).
@@ -171,8 +173,14 @@ jobs:
 |---|---|---|---|
 | `mode` | Operation mode: `review`, `triage`, or `sync` | No | `review` |
 | `github-token` | GitHub token for PR comments, reviews, or triage labels | No | `${{ github.token }}` |
+| `provider` | AI provider backend (`gemini`, `openai`, `deepseek`, `ollama`, `groq`, `openrouter`, `auto`) | No | `gemini` |
 | `gemini-api-key` | Google Gemini API Key | No | `""` |
-| `model` | Primary model name to use | No | `gemini-3.7-flash` |
+| `openai-api-key` | OpenAI API Key | No | `""` |
+| `deepseek-api-key` | DeepSeek API Key | No | `""` |
+| `api-key` | Generic API Key for custom providers | No | `""` |
+| `api-base` | Custom API base URL (e.g. for Ollama or self-hosted LLMs) | No | `""` |
+| `model` | Primary model name (e.g. `gemini-3.7-flash`, `gpt-4o-mini`, `deepseek-chat`) | No | `gemini-3.7-flash` |
+| `number` | PR or Issue number (or branch name) for manual `workflow_dispatch` | No | `""` |
 | `max-chars` | Maximum characters per batch before diff splitting | No | `100000` |
 | `max-batches` | Maximum number of batches to review | No | `5` |
 | `base-ref` | Base git reference branch for diff calculation | No | `master` |
@@ -188,24 +196,12 @@ Configure optional repository rules in `.github/poing.json`:
   "engine": "auto",
   "review": {
     "model": "gemini-3.7-flash",
-    "fallback_models": ["gemini-3.6-flash", "gemini-3.5-flash"],
-    "max_chars": 100000,
-    "max_batches": 5
+    "provider": "gemini"
   },
   "dependencies": {
-    "targets": [
-      {
-        "type": "gdscript_config",
-        "paths": ["platforms/android/src/**/config/*.gd", "platforms/ios/src/**/config/*.gd"]
-      },
-      {
-        "type": "gradle",
-        "paths": ["platforms/android/build.gradle"]
-      },
-      {
-        "type": "swift_package",
-        "paths": ["platforms/ios/Package.swift"]
-      }
+    "files": [
+      "platforms/android/build.gradle",
+      "platforms/ios/Package.swift"
     ]
   }
 }
@@ -215,10 +211,14 @@ Configure optional repository rules in `.github/poing.json`:
 
 ## 💻 Local CLI Usage
 
-Install the package locally in editable mode:
+Install **Poing Reviewer** via `pip` or run instantly with `pipx`:
 
 ```bash
-pip install -e .
+# Install from PyPI
+pip install poing-reviewer
+
+# Or run instantly without installation
+pipx run poing-reviewer --local
 ```
 
 ### 1. Running with Local Models (Ollama)
