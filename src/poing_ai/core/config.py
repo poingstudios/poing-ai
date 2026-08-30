@@ -275,7 +275,13 @@ class Config:
         if not raw_head_sha:
             try:
                 import subprocess
-                proc = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                proc = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=5,
+                )
                 if proc.returncode == 0 and proc.stdout.strip():
                     raw_head_sha = proc.stdout.strip()
             except Exception:
