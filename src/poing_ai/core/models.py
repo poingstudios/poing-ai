@@ -63,6 +63,7 @@ class ReviewResult:
     summary: str = ""
     findings: List[ReviewFinding] = field(default_factory=list)
     comments: List[ReviewComment] = field(default_factory=list)
+    model: str = ""
 
     def to_dict(self) -> Dict[str, object]:
         return {
