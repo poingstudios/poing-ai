@@ -31,6 +31,12 @@
     "auto_label": true,
     "auto_priority": true
   },
+  "fix": {
+    "enabled": true,
+    "provider": "antigravity",
+    "auto_work_on_issues": false,
+    "branch_prefix": "fix/issue-"
+  },
   "dependencies": {
     "enabled": true,
     "model": "gemini-3.5-flash-lite",

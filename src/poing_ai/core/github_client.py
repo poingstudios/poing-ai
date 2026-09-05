@@ -420,3 +420,34 @@ class GitHubClient:
                 verified_actions[clean_match] = exists
                 logger.info(f"Verified GitHub Action [{clean_match}]: {'VALID' if exists else 'INVALID'}")
         return verified_actions
+
+    def is_pull_request(self, repo: str, number: str) -> bool:
+        issue = self.fetch_issue(repo, number)
+        return bool(issue and issue.get("pull_request"))
+
+    def create_pull_request(
+        self,
+        repo: str,
+        title: str,
+        body: str,
+        head: str,
+        base: str = "master",
+    ) -> Optional[Dict[str, Any]]:
+        try:
+            resp = requests.post(
+                f"{BASE_URL}/repos/{repo}/pulls",
+                headers=self._headers(),
+                json={
+                    "title": title,
+                    "body": body,
+                    "head": head,
+                    "base": base,
+                },
+                timeout=20,
+            )
+            if resp.status_code == 201:
+                return resp.json()
+            logger.error(f"Failed to create pull request for {head}: {resp.status_code} {resp.text}")
+        except Exception as e:
+            logger.error(f"Request failed creating pull request for {head}: {e}")
+        return None

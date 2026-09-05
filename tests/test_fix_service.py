@@ -112,6 +112,112 @@ class TestFixService(unittest.TestCase):
         self.assertEqual(len(fix_result.fixes), 1)
         self.assertEqual(fix_result.fixes[0].replacement_snippet, "bar")
 
+    def test_discover_targets_from_issue(self):
+        test_file = self.root_path / "src" / "math_utils.py"
+        test_file.parent.mkdir(parents=True, exist_ok=True)
+        test_file.write_text("def multiply(a, b): return a + b\n", encoding="utf-8")
+
+        cfg = Config(
+            local=True,
+            provider="mock",
+            issue_number="42",
+            issue_title="Bug in src/math_utils.py multiplication",
+            issue_body="The multiply function returns addition instead of multiplication.",
+        )
+        service = FixService(cfg)
+        service.root_dir = self.root_path
+
+        findings, files = service._discover_targets()
+        self.assertIn("src/math_utils.py", files)
+        self.assertIn("Bug in src/math_utils.py", findings)
+
+    def test_discover_targets_from_issue_disabled_by_default_in_remote(self):
+        cfg = Config(
+            local=False,
+            repo="poingstudios/test-repo",
+            issue_number="42",
+            issue_title="Bug in src/math_utils.py",
+            issue_body="Broken function",
+        )
+        self.assertFalse(cfg.AUTO_WORK_ON_ISSUES)
+
+        mock_client = MagicMock()
+        mock_client.is_pull_request.return_value = False
+        service = FixService(cfg, client=mock_client)
+        service.root_dir = self.root_path
+
+        findings, files = service._discover_targets()
+        self.assertEqual(files, [])
+        self.assertEqual(findings, "")
+
+    def test_discover_targets_from_issue_explicit_command_proceeds(self):
+        test_file = self.root_path / "src" / "math_utils.py"
+        test_file.parent.mkdir(parents=True, exist_ok=True)
+        test_file.write_text("def multiply(a, b): return a + b\n", encoding="utf-8")
+
+        cfg = Config(
+            local=False,
+            repo="poingstudios/test-repo",
+            issue_number="42",
+            issue_title="Bug in src/math_utils.py",
+            issue_body="Broken function",
+        )
+        cfg.COMMENT_BODY = "/fix please"
+
+        mock_client = MagicMock()
+        mock_client.is_pull_request.return_value = False
+        service = FixService(cfg, client=mock_client)
+        service.root_dir = self.root_path
+
+        findings, files = service._discover_targets()
+        self.assertIn("src/math_utils.py", files)
+
+    def test_handle_remote_issue_pr(self):
+        cfg = Config(
+            local=False,
+            repo="poingstudios/test-repo",
+            issue_number="99",
+            issue_title="Fix memory leak",
+            github_token="fake_token",
+        )
+        mock_client = MagicMock()
+        mock_client.is_pull_request.return_value = False
+        mock_client.create_pull_request.return_value = {
+            "number": 101,
+            "html_url": "https://github.com/poingstudios/test-repo/pull/101",
+        }
+
+        service = FixService(cfg, client=mock_client)
+        service.root_dir = self.root_path
+
+        fixes = [
+            FileFix(
+                file_path="leak.py",
+                explanation="Freed pointer",
+                original_snippet="alloc()",
+                replacement_snippet="alloc(); free()",
+            )
+        ]
+        result = FixResult(
+            summary="Resolved memory leak",
+            fixes=fixes,
+            tests_passed=True,
+        )
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0)
+            service._handle_remote_commit(result, fixes)
+
+        mock_client.create_pull_request.assert_called_once()
+        _, kwargs = mock_client.create_pull_request.call_args
+        self.assertEqual(kwargs["repo"], "poingstudios/test-repo")
+        self.assertIn("fix(#99): Fix memory leak", kwargs["title"])
+        self.assertIn("fix/issue-99-fix-memory-leak", kwargs["head"])
+
+        mock_client.add_comment.assert_called_once()
+        c_args, _ = mock_client.add_comment.call_args
+        self.assertIn("101", c_args[2])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -202,6 +202,7 @@ class Config:
         output_format: Optional[str] = None,
         fail_on_changes: bool = False,
         config_data: Optional[Dict[str, Any]] = None,
+        auto_work_on_issues: Optional[bool] = None,
     ):
         file_config = config_data if config_data is not None else load_repo_config()
         self.file_config = file_config
@@ -223,6 +224,8 @@ class Config:
             section_key = "triage"
         elif self.MODE in ("sync", "dependencies"):
             section_key = "dependencies"
+        elif self.MODE == "fix":
+            section_key = "fix"
 
         section_cfg = file_config.get(section_key, {})
 
@@ -298,6 +301,14 @@ class Config:
         self.IS_MAINTAINER = get_env_optional("IS_MAINTAINER", "false").lower() == "true"
         self.BOT_LOGIN = get_env_optional("BOT_LOGIN")
         self.TRIGGER_ACTION = get_env_optional("TRIGGER_ACTION")
+        self.AUTO_WORK_ON_ISSUES = (
+            auto_work_on_issues
+            if auto_work_on_issues is not None
+            else (
+                get_env_optional("AUTO_WORK_ON_ISSUES", "false").lower() == "true"
+                or section_cfg.get("auto_work_on_issues", False)
+            )
+        )
 
         # Determine default model
         configured_model = section_cfg.get("model")

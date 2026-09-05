@@ -14,6 +14,7 @@
 
 import difflib
 import os
+import re
 import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
@@ -155,7 +156,11 @@ class FixService:
 
         # 1. On GitHub PR, check existing reviews (tables & comments)
         pr_num = self.cfg.ISSUE_NUMBER or self.cfg.PR_NUMBER or getattr(self.cfg, "NUMBER", None)
+        is_pr = False
         if self.client and self.cfg.REPO and pr_num:
+            is_pr = self.client.is_pull_request(self.cfg.REPO, str(pr_num))
+
+        if is_pr and self.client and self.cfg.REPO and pr_num:
             logger.info(f"Fetching reviews and comments for PR #{pr_num}...")
             reviews = self.client.fetch_existing_reviews(self.cfg.REPO, str(pr_num))
             for r in reviews:
@@ -175,7 +180,47 @@ class FixService:
             if findings:
                 return "\n".join(findings), list(files)
 
-        # 2. In Local Mode, check uncommitted diff first
+        # 2. On GitHub Issue (not a PR), discover targets from issue title and body
+        if not is_pr and self.cfg.ISSUE_NUMBER and not (self.cfg.ISSUE_TITLE or self.cfg.ISSUE_BODY):
+            if self.client and self.cfg.REPO:
+                issue_data = self.client.fetch_issue(self.cfg.REPO, str(self.cfg.ISSUE_NUMBER))
+                if issue_data:
+                    self.cfg.ISSUE_TITLE = issue_data.get("title")
+                    self.cfg.ISSUE_BODY = issue_data.get("body")
+            elif self.cfg.LOCAL:
+                try:
+                    import json
+                    res = subprocess.run(
+                        ["gh", "issue", "view", str(self.cfg.ISSUE_NUMBER), "--json", "title,body"],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                    if res.returncode == 0 and res.stdout.strip():
+                        data = json.loads(res.stdout)
+                        self.cfg.ISSUE_TITLE = data.get("title")
+                        self.cfg.ISSUE_BODY = data.get("body")
+                except Exception as e:
+                    logger.debug(f"Failed to fetch issue details via gh CLI: {e}")
+
+        if not is_pr and (self.cfg.ISSUE_TITLE or self.cfg.ISSUE_BODY):
+            has_explicit_command = bool(
+                self.cfg.COMMENT_BODY
+                and any(
+                    cmd in self.cfg.COMMENT_BODY.lower()
+                    for cmd in ("/fix", "/work", "@poing-ai fix", "@poing-ai work")
+                )
+            )
+            if not self.cfg.LOCAL and not has_explicit_command and not self.cfg.AUTO_WORK_ON_ISSUES:
+                logger.info("Automatic issue fixing is disabled by default (auto_work_on_issues=false). Skipping.")
+                return "", []
+
+            issue_findings, issue_files = self._discover_targets_from_issue()
+            if issue_files:
+                logger.info(f"Discovered {len(issue_files)} target file(s) for Issue #{self.cfg.ISSUE_NUMBER or 'New'}: {issue_files}")
+                return issue_findings, issue_files
+
+        # 3. In Local Mode, check uncommitted diff first
         diff_output = get_git_diff(
             base_ref=self.cfg.BASE_REF or "master",
             local=self.cfg.LOCAL,
@@ -218,6 +263,56 @@ class FixService:
             return "Resolve all syntax, architecture, and lint issues in modified files.", git_files
 
         return "", []
+
+    def _discover_targets_from_issue(self) -> Tuple[str, List[str]]:
+        """Discovers target files and builds problem context from an Issue title and body."""
+        title = self.cfg.ISSUE_TITLE or ""
+        body = self.cfg.ISSUE_BODY or ""
+        combined = f"{title}\n{body}"
+        files: Set[str] = set()
+
+        # 1. Regex scan for file paths in issue title and body
+        tokens = re.findall(r"[\w\-\./]+\.[a-zA-Z0-9]+", combined)
+        for token in tokens:
+            clean = token.strip("`'\"(),:;[]{}")
+            candidate = self.root_dir / clean
+            if candidate.exists() and candidate.is_file():
+                files.add(clean)
+
+        # 2. Query retriever / RAG for relevant source files
+        if not files and self.retriever:
+            try:
+                query = f"{title} {body[:200]}"
+                docs = self.retriever.retrieve(query)
+                for d in docs:
+                    if d.source:
+                        candidate = self.root_dir / d.source
+                        if candidate.exists() and candidate.is_file():
+                            files.add(d.source)
+            except Exception as e:
+                logger.debug(f"Retriever target discovery failed: {e}")
+
+        # 3. Fallback: Search candidate source files by keywords in issue title
+        if not files:
+            stop_words = {"fix", "bug", "issue", "error", "problem", "add", "the", "and", "for", "with", "this", "that"}
+            keywords = [w.lower() for w in re.findall(r"\b[a-zA-Z_]{3,}\b", title) if w.lower() not in stop_words]
+            if keywords:
+                exts = ["*.py", "*.gd", "*.swift", "*.kt", "*.java", "*.cs", "*.ts", "*.js", "*.gradle", "*.json"]
+                for ext in exts:
+                    for p in self.root_dir.rglob(ext):
+                        if any(part.startswith(".") or part in ("build", "dist", "node_modules", ".git", ".godot", "venv") for part in p.parts):
+                            continue
+                        name_lower = p.name.lower()
+                        if any(k in name_lower for k in keywords):
+                            rel = str(p.relative_to(self.root_dir))
+                            files.add(rel)
+                            if len(files) >= 5:
+                                break
+                    if len(files) >= 5:
+                        break
+
+        findings = f"## Issue #{self.cfg.ISSUE_NUMBER or 'New'}: {title}\n\n{body}"
+        return findings, list(files)
 
     def _extract_findings_from_markdown(self, text: str) -> Tuple[List[str], Set[str]]:
         """Extracts findings and target files from markdown review tables and comment lists."""
@@ -405,8 +500,17 @@ class FixService:
         print("=" * 60 + "\n")
 
     def _handle_remote_commit(self, result: Optional[FixResult], applied_fixes: List[FileFix]) -> None:
-        """Commits and pushes repairs to the PR branch and updates GitHub."""
+        """Commits and pushes repairs to the PR branch or creates a new PR for an Issue."""
         if not applied_fixes:
+            return
+
+        pr_num = self.cfg.ISSUE_NUMBER or self.cfg.PR_NUMBER or getattr(self.cfg, "NUMBER", None)
+        is_pr = False
+        if self.client and self.cfg.REPO and pr_num:
+            is_pr = self.client.is_pull_request(self.cfg.REPO, str(pr_num))
+
+        if not is_pr and self.cfg.ISSUE_NUMBER:
+            self._handle_remote_issue_pr(result, applied_fixes)
             return
 
         file_paths = [f.file_path for f in applied_fixes]
@@ -432,3 +536,66 @@ class FixService:
                 self.client.add_comment(self.cfg.REPO, str(self.cfg.ISSUE_NUMBER), body)
         except Exception as e:
             logger.error(f"Failed to commit/push remote fixes: {e}")
+
+    def _handle_remote_issue_pr(self, result: Optional[FixResult], applied_fixes: List[FileFix]) -> None:
+        """Creates a fix branch, commits repairs, pushes to origin, and opens a PR resolving the issue."""
+        issue_num = str(self.cfg.ISSUE_NUMBER)
+        title = self.cfg.ISSUE_TITLE or f"resolve issue #{issue_num}"
+        raw_slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", title.lower()).strip("-")
+        slug = raw_slug[:30].rstrip("-") if raw_slug else "fix"
+        branch_name = f"fix/issue-{issue_num}-{slug}"
+
+        commit_msg = f"fix(#{issue_num}): {title}"
+        file_paths = [f.file_path for f in applied_fixes]
+
+        try:
+            logger.info(f"Creating new fix branch `{branch_name}` for Issue #{issue_num}...")
+            subprocess.run(["git", "checkout", "-B", branch_name], check=True)
+            subprocess.run(["git", "config", "user.name", "poing-ai[bot]"], check=True)
+            subprocess.run(["git", "config", "user.email", "296332247+poing-ai[bot]@users.noreply.github.com"], check=True)
+            subprocess.run(["git", "add"] + file_paths, check=True)
+            subprocess.run(["git", "commit", "-m", commit_msg], check=True)
+            subprocess.run(["git", "push", "-u", "origin", branch_name], check=True)
+            logger.info(f"✅ Successfully pushed fix branch `{branch_name}` to origin.")
+
+            # Create Pull Request
+            pr_title = f"fix(#{issue_num}): {title}"
+            pr_body = (
+                f"## 🛠️ Automated Fix for Issue #{issue_num}\n\n"
+                f"Closes #{issue_num}\n\n"
+                f"### Summary\n{result.summary if result and result.summary else 'Automated fix for reported issue.'}\n\n"
+                f"### Applied Fixes\n"
+            )
+            for fix in applied_fixes:
+                pr_body += f"- `{fix.file_path}`: {fix.explanation}\n"
+            pr_body += "\n### Test Verification\n"
+            if result and result.tests_passed:
+                pr_body += "✅ All automated tests and linters passed!\n"
+            else:
+                pr_body += "⚠️ Tests were executed; please review changes.\n"
+            pr_body += "\n---\n*Automated fix generated by [Poing AI](https://github.com/poingstudios/poing-ai)*\n"
+
+            base_branch = self.cfg.BASE_REF or "master"
+            pr_url = ""
+            if self.client and self.cfg.REPO:
+                pr_data = self.client.create_pull_request(
+                    repo=self.cfg.REPO,
+                    title=pr_title,
+                    body=pr_body,
+                    head=branch_name,
+                    base=base_branch,
+                )
+                if pr_data and "number" in pr_data:
+                    pr_num_val = pr_data["number"]
+                    pr_url = pr_data.get("html_url", f"#{pr_num_val}")
+                    logger.info(f"✅ Successfully opened Pull Request {pr_url} for Issue #{issue_num}")
+
+                # Comment on the original issue
+                issue_comment = (
+                    f"🤖 **[Poing AI](https://github.com/poingstudios/poing-ai)** has analyzed this issue and opened a pull request with an automated fix:\n\n"
+                    f"👉 **Pull Request:** {pr_url if pr_url else branch_name}\n\n"
+                    f"**Summary of Changes:**\n{result.summary if result and result.summary else ''}"
+                )
+                self.client.add_comment(self.cfg.REPO, issue_num, issue_comment)
+        except Exception as e:
+            logger.error(f"Failed to create fix branch or PR for Issue #{issue_num}: {e}")
