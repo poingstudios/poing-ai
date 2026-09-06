@@ -251,14 +251,14 @@ class GeminiProvider(BaseAIProvider):
                     raw = match.group(1).strip()
             return json.loads(raw.strip())
         except json.JSONDecodeError:
-            start = raw_text.find("{")
-            end = raw_text.rfind("}")
+            start = raw.find("{")
+            end = raw.rfind("}")
             if start != -1 and end != -1 and end > start:
                 try:
-                    return json.loads(raw_text[start : end + 1])
+                    return json.loads(raw[start : end + 1])
                 except json.JSONDecodeError:
                     pass
-            logger.error(f"Failed to parse JSON response:\nResponse: {raw_text[:400]}")
+            logger.error(f"Failed to parse JSON response:\nResponse: {raw[:400]}")
             return None
 
     def generate_review(
