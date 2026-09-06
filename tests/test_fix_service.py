@@ -299,6 +299,5 @@ class TestFixService(unittest.TestCase):
         c_args, _ = mock_client.add_comment.call_args
         self.assertIn("101", c_args[2])
 
-
 if __name__ == "__main__":
     unittest.main()
