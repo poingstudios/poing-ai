@@ -43,6 +43,28 @@ class TestRAG(unittest.TestCase):
             self.assertEqual(len(emb), 4)
             self.assertEqual(emb[0], 0.1)
 
+    def test_gemini_embedder_prunes_on_404_and_quota(self):
+        embedder = GeminiEmbedder(
+            api_key="mock_key",
+            primary_model="not-found-model",
+            fallback_models=["gemini-embedding-2-preview"],
+        )
+
+        resp_404 = MagicMock(status_code=404, text="Not Found")
+        resp_429 = MagicMock(status_code=429, text='{"error": {"message": "Resource has been exhausted (e.g. check quota)."}}')
+
+        with patch("requests.post", side_effect=[resp_404, resp_429]):
+            emb = embedder.embed_text("Sample text")
+            self.assertEqual(emb, [])
+            self.assertTrue(embedder._exhausted)
+            self.assertEqual(embedder.models_to_try, [])
+
+        # Subsequent call should return [] without any requests
+        with patch("requests.post") as mock_post:
+            emb2 = embedder.embed_text("Another text")
+            self.assertEqual(emb2, [])
+            mock_post.assert_not_called()
+
     def test_vector_rag_retriever(self):
         (self.test_dir / "AGENTS.md").write_text("Use GDScript := operator for type inference.", encoding="utf-8")
         (self.test_dir / "CONTRIBUTING.md").write_text("Guidelines for making pull requests.", encoding="utf-8")

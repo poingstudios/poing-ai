@@ -24,9 +24,7 @@ logger = get_logger("ai.rag.gemini_embedder")
 EMBEDDING_API_VERSIONS = ["v1beta"]
 
 FALLBACK_EMBEDDING_MODELS = [
-    "text-embedding-004",
     "gemini-embedding-2-preview",
-    "gemini-embedding-001",
 ]
 
 
@@ -36,21 +34,22 @@ class GeminiEmbedder(BaseEmbedder):
     def __init__(
         self,
         api_key: str,
-        primary_model: str = "text-embedding-004",
+        primary_model: str = "gemini-embedding-2-preview",
         fallback_models: Optional[List[str]] = None,
     ):
         self.api_key = api_key
+        self.primary_model = primary_model
         models = [primary_model] + (fallback_models or FALLBACK_EMBEDDING_MODELS)
         seen = set()
         self.models_to_try = [m for m in models if not (m in seen or seen.add(m))]
         self._exhausted = False
 
     def embed_text(self, text: str) -> List[float]:
-        if self._exhausted or not self.api_key or not text.strip():
+        if self._exhausted or not self.api_key or not text.strip() or not self.models_to_try:
             return []
 
         for api_ver in EMBEDDING_API_VERSIONS:
-            for model in self.models_to_try:
+            for model in list(self.models_to_try):
                 url = f"https://generativelanguage.googleapis.com/{api_ver}/models/{model}:embedContent"
                 payload: Dict[str, Any] = {
                     "content": {
@@ -81,10 +80,18 @@ class GeminiEmbedder(BaseEmbedder):
                             self._exhausted = True
                             return []
 
+                        if resp.status_code in (404, 400):
+                            logger.warning(f"Embedding model {model} unavailable ({resp.status_code}). Removing from candidate models.")
+                            if model in self.models_to_try:
+                                self.models_to_try.remove(model)
+                            break
+
                         if resp.status_code == 429:
                             resp_text = resp.text.lower()
                             if "quota" in resp_text or "resource_exhausted" in resp_text:
-                                logger.warning(f"Embedding API quota exceeded ({model}): {resp.status_code}. Trying fallback...")
+                                logger.warning(f"Embedding API quota exceeded ({model}): {resp.status_code}. Disabling model.")
+                                if model in self.models_to_try:
+                                    self.models_to_try.remove(model)
                                 break
                             if attempt < 1:
                                 time.sleep(1)
@@ -99,6 +106,7 @@ class GeminiEmbedder(BaseEmbedder):
                             continue
                         break
 
-        self._exhausted = True
-        logger.warning("All embedding models exhausted or quota reached. Disabling embeddings for this run.")
+        if not self.models_to_try:
+            self._exhausted = True
+            logger.warning("All embedding models exhausted or unavailable. Disabling embeddings for this run.")
         return []

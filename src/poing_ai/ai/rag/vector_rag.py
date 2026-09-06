@@ -88,15 +88,17 @@ class VectorRAGRetriever(BaseRetriever):
                 sections = parse_markdown_with_breadcrumbs(rel_source, content)
 
                 for sec in sections:
+                    if getattr(self.embedder, "_exhausted", None) is True:
+                        break
                     sec_hash = compute_content_hash(sec.content, model_name=model_name)
                     emb = self.cache.get(sec_hash)
 
                     if not emb:
-                        if getattr(self.embedder, "_exhausted", None) is True:
-                            break
                         emb = self.embedder.embed_text(sec.content)
                         if emb:
                             self.cache.set(sec_hash, emb, source=sec.breadcrumb)
+                        elif getattr(self.embedder, "_exhausted", None) is True:
+                            break
 
                     if emb:
                         doc = RetrievedDocument(
