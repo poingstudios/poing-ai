@@ -59,6 +59,29 @@ When Poing AI flags issues or you want automated fixes on a PR:
 
 ---
 
+## 🎯 Autonomous Issue Worker (Opt-in)
+
+Poing AI can listen to issues, solve them, and open ready-to-merge Pull Requests. **This feature is disabled by default** to give repository maintainers full control.
+
+### How to Trigger Issue Auto-Fix
+1. **On-demand via Comment (Default)**: Comment `/fix` or `/work` on any open issue.
+2. **Label Opt-in**: Add the `auto-fix` or `poing-work` label to the issue.
+3. **Automatic for All Issues**: Enable in `.github/poing.json`:
+   ```json
+   "fix": {
+     "enabled": true,
+     "auto_work_on_issues": true
+   }
+   ```
+
+### Issue Worker Lifecycle
+1. **Context & Target Discovery**: Extracts referenced file paths from the issue and queries the Vector RAG retriever to identify relevant source files.
+2. **Patching & Test Execution**: Generates drop-in snippet fixes and executes the project's test suite to verify the repair.
+3. **Branch & Pull Request Creation**: Creates branch `fix/issue-<id>-<slug>`, commits the tested changes, pushes to origin, and opens a Pull Request linking to `Closes #<id>`.
+4. **Issue Notification**: Posts a confirmation comment on the issue with a link to the generated PR.
+
+---
+
 ## ⚙️ Test Runner Auto-Detection
 
 The fixer automatically detects and executes your repository's test runner to verify fixes before finalizing:

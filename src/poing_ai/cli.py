@@ -168,6 +168,14 @@ def create_parser() -> argparse.ArgumentParser:
         default=None,
         help="Issue action (opened, comment, etc.)",
     )
+    parser.add_argument(
+        "--labels",
+        "--issue-labels",
+        dest="labels",
+        nargs="+",
+        default=None,
+        help="Issue or PR labels for triage and auto-fix opt-in",
+    )
 
     return parser
 
@@ -198,6 +206,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         files=args.files,
         output_format=args.output,
         fail_on_changes=args.fail_on_changes,
+        labels=args.labels,
     )
 
     if args.fix:

@@ -34,7 +34,9 @@
   "fix": {
     "enabled": true,
     "provider": "gemini",
-    "model": "gemini-3.8-flash"
+    "model": "gemini-3.8-flash",
+    "auto_work_on_issues": false,
+    "branch_prefix": "fix/issue-"
   },
   "dependencies": {
     "enabled": true,
