@@ -62,6 +62,15 @@ class TestGeminiProvider(unittest.TestCase):
         self.assertEqual(provider.models_to_try[0], "gemini-3.8-flash")
         self.assertIn("gemini-3.7-flash", provider.models_to_try)
 
+    def test_gemini_provider_parse_json_fallback_with_thinking_braces(self):
+        provider = GeminiProvider(api_key="mock_key")
+        # Text with thinking tags containing stray braces before the actual JSON payload
+        raw_output = "<thought>Checking if {a: 1} is valid.</thought> Here is the output:\n{\"verdict\": \"APPROVED\", \"summary\": \"All good\", \"findings\": [], \"comments\": []}"
+        parsed = provider._parse_json(raw_output)
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed.get("verdict"), "APPROVED")
+        self.assertEqual(parsed.get("summary"), "All good")
+
 
 if __name__ == "__main__":
     unittest.main()
