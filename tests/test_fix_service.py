@@ -172,6 +172,87 @@ class TestFixService(unittest.TestCase):
         findings, files = service._discover_targets()
         self.assertIn("src/math_utils.py", files)
 
+    def test_discover_targets_from_issue_with_opt_in_label(self):
+        test_file = self.root_path / "src" / "math_utils.py"
+        test_file.parent.mkdir(parents=True, exist_ok=True)
+        test_file.write_text("def multiply(a, b): return a + b\n", encoding="utf-8")
+
+        cfg = Config(
+            local=False,
+            repo="poingstudios/test-repo",
+            issue_number="42",
+        )
+        mock_client = MagicMock()
+        mock_client.is_pull_request.return_value = False
+        mock_client.fetch_issue.return_value = {
+            "title": "Bug in src/math_utils.py",
+            "body": "Broken multiplication logic",
+            "labels": [{"name": "auto-fix"}, {"name": "bug"}],
+        }
+        service = FixService(cfg, client=mock_client)
+        service.root_dir = self.root_path
+
+        findings, files = service._discover_targets()
+        self.assertIn("src/math_utils.py", files)
+        self.assertIn("Bug in src/math_utils.py", findings)
+
+    def test_fix_service_token_clamping(self):
+        test_file = self.root_path / "large_file.py"
+        large_content = "x = 1\n" * 6000  # ~36,000 chars
+        test_file.write_text(large_content, encoding="utf-8")
+
+        mock_ai = MagicMock()
+        mock_ai.generate_fix.return_value = FixResult(
+            summary="Fixed large file",
+            fixes=[
+                FileFix(
+                    file_path="large_file.py",
+                    explanation="Fix line",
+                    original_snippet="x = 1\n",
+                    replacement_snippet="x = 2\n",
+                )
+            ],
+            tests_passed=True,
+        )
+
+        mock_retriever = MagicMock()
+        # Large RAG doc > 4000 chars
+        large_doc = MagicMock()
+        large_doc.source = "rules.md"
+        large_doc.content = "A" * 4000
+        mock_retriever.retrieve.return_value = [large_doc]
+
+        service = FixService(self.cfg, ai=mock_ai, retriever=mock_retriever)
+        service.root_dir = self.root_path
+
+        with patch.object(service, "_run_test_validation", return_value=(True, "OK")):
+            service.run(
+                findings_override="Fix issue",
+                target_files_override=["large_file.py"],
+            )
+
+        # Verify AI was called with clamped prompt
+        mock_ai.generate_fix.assert_called_once()
+        sent_prompt = mock_ai.generate_fix.call_args[0][0]
+        self.assertIn("truncated remaining content to conserve quota", sent_prompt)
+        self.assertIn("truncated guidelines", sent_prompt)
+
+    def test_antigravity_agent_provider_failover(self):
+        mock_fallback = MagicMock()
+        mock_fallback.generate_fix.return_value = FixResult(
+            summary="Fixed by fallback",
+            fixes=[],
+            model="gemini-3.8-flash",
+        )
+        provider = AntigravityAgentProvider(api_key="mock-key", fallback_provider=mock_fallback)
+        # Simulate Antigravity API returning None (timeout or 429)
+        with patch.object(provider, "_call_agent", return_value=None):
+            result = provider.generate_fix("test prompt")
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result.summary, "Fixed by fallback")
+        mock_fallback.generate_fix.assert_called_once_with("test prompt", None)
+
     def test_handle_remote_issue_pr(self):
         cfg = Config(
             local=False,

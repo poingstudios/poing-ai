@@ -43,7 +43,9 @@ OLLAMA_FALLBACK_MODELS = [
 def get_model_max_chars(model_name: str, requested_max: int = 100000) -> int:
     """Returns safe character limit per diff batch based on model token capacity."""
     m = model_name.lower()
-    if "gemma" in m:
+    if "antigravity" in m:
+        return min(requested_max, 35000)
+    elif "gemma" in m:
         # Gemma Free Tier has a strict 16k TPM limit. Safe char limit: ~20,000 chars (~5k tokens)
         return min(requested_max, 20000)
     elif any(k in m for k in ["deepseek-coder:6.7b", "qwen2.5-coder:7b", "codellama", "mistral"]):
@@ -203,6 +205,7 @@ class Config:
         fail_on_changes: bool = False,
         config_data: Optional[Dict[str, Any]] = None,
         auto_work_on_issues: Optional[bool] = None,
+        labels: Optional[List[str]] = None,
     ):
         file_config = config_data if config_data is not None else load_repo_config()
         self.file_config = file_config
@@ -309,6 +312,7 @@ class Config:
                 or section_cfg.get("auto_work_on_issues", False)
             )
         )
+        self.LABELS = labels or ([l.strip() for l in get_env_optional("LABELS").split(",") if l.strip()] if get_env_optional("LABELS") else [])
 
         # Determine default model
         configured_model = section_cfg.get("model")

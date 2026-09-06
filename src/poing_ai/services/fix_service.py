@@ -64,13 +64,21 @@ class FixService:
             logger.info("No targets found to fix. Working tree or PR is clean.")
             return None
 
-        # 2. Read current content of target files
+        # 2. Read current content of target files (limit to top 5 files and 25k chars per file to stay within TPM quotas)
         target_files: Dict[str, str] = {}
-        for rel_path in target_file_paths:
+        MAX_FILE_CHARS = 25000
+        for rel_path in target_file_paths[:5]:
             abs_path = self.root_dir / rel_path
             if abs_path.exists() and abs_path.is_file():
                 try:
-                    target_files[rel_path] = abs_path.read_text(encoding="utf-8")
+                    content = abs_path.read_text(encoding="utf-8")
+                    if len(content) > MAX_FILE_CHARS:
+                        logger.warning(
+                            f"File {rel_path} exceeds {MAX_FILE_CHARS} chars ({len(content)} chars). "
+                            f"Truncating for prompt to conserve token quota."
+                        )
+                        content = content[:MAX_FILE_CHARS] + "\n# ... (truncated remaining content to conserve quota)"
+                    target_files[rel_path] = content
                 except Exception as e:
                     logger.warning(f"Could not read {rel_path}: {e}")
 
@@ -83,15 +91,20 @@ class FixService:
         if self.retriever:
             try:
                 rag_query = f"architecture coding standards fix guidelines {' '.join(target_file_paths)}"
-                docs = self.retriever.retrieve(rag_query)
+                docs = self.retriever.retrieve(rag_query, top_k=3)
                 if docs:
-                    rag_guidelines = "\n\n".join(f"### [{d.source}]\n{d.content}" for d in docs)
+                    combined_docs = "\n\n".join(f"### [{d.source}]\n{d.content}" for d in docs)
+                    if len(combined_docs) > 3000:
+                        combined_docs = combined_docs[:3000] + "\n... (truncated guidelines)"
+                    rag_guidelines = combined_docs
             except Exception as e:
                 logger.warning(f"RAG retrieval failed: {e}")
 
         engine_rules = ""
         if self.engine:
             engine_rules = self.engine.get_review_guidelines()
+            if len(engine_rules) > 2000:
+                engine_rules = engine_rules[:2000] + "\n... (truncated engine rules)"
 
         # 4. Agent Repair & Test Validation Loop (max 3 iterations)
         max_retries = 2
@@ -101,12 +114,15 @@ class FixService:
 
         for iteration in range(1, max_retries + 2):
             logger.info(f"Fix iteration {iteration}/{max_retries + 1}...")
+            truncated_trace = None
+            if test_failure_trace:
+                truncated_trace = test_failure_trace[-2000:] if len(test_failure_trace) > 2000 else test_failure_trace
             prompt = build_fix_prompt(
                 findings_context=findings_context,
                 target_files=target_files,
                 rag_guidelines=rag_guidelines,
                 engine_rules=engine_rules,
-                test_failure_trace=test_failure_trace,
+                test_failure_trace=truncated_trace,
             )
 
             last_fix_result = self.ai.generate_fix(prompt)
@@ -181,29 +197,49 @@ class FixService:
                 return "\n".join(findings), list(files)
 
         # 2. On GitHub Issue (not a PR), discover targets from issue title and body
-        if not is_pr and self.cfg.ISSUE_NUMBER and not (self.cfg.ISSUE_TITLE or self.cfg.ISSUE_BODY):
-            if self.client and self.cfg.REPO:
-                issue_data = self.client.fetch_issue(self.cfg.REPO, str(self.cfg.ISSUE_NUMBER))
-                if issue_data:
-                    self.cfg.ISSUE_TITLE = issue_data.get("title")
-                    self.cfg.ISSUE_BODY = issue_data.get("body")
-            elif self.cfg.LOCAL:
-                try:
-                    import json
-                    res = subprocess.run(
-                        ["gh", "issue", "view", str(self.cfg.ISSUE_NUMBER), "--json", "title,body"],
-                        capture_output=True,
-                        text=True,
-                        timeout=10,
-                    )
-                    if res.returncode == 0 and res.stdout.strip():
-                        data = json.loads(res.stdout)
-                        self.cfg.ISSUE_TITLE = data.get("title")
-                        self.cfg.ISSUE_BODY = data.get("body")
-                except Exception as e:
-                    logger.debug(f"Failed to fetch issue details via gh CLI: {e}")
+        issue_labels: List[str] = list(getattr(self.cfg, "LABELS", []))
+        if not is_pr and self.cfg.ISSUE_NUMBER:
+            if not (self.cfg.ISSUE_TITLE and self.cfg.ISSUE_BODY) or not issue_labels:
+                if self.client and self.cfg.REPO:
+                    issue_data = self.client.fetch_issue(self.cfg.REPO, str(self.cfg.ISSUE_NUMBER))
+                    if issue_data:
+                        if not self.cfg.ISSUE_TITLE:
+                            self.cfg.ISSUE_TITLE = issue_data.get("title")
+                        if not self.cfg.ISSUE_BODY:
+                            self.cfg.ISSUE_BODY = issue_data.get("body")
+                        raw_labels = issue_data.get("labels", [])
+                        for lbl in raw_labels:
+                            name = lbl.get("name", "") if isinstance(lbl, dict) else str(lbl)
+                            if name and name not in issue_labels:
+                                issue_labels.append(name)
+                elif self.cfg.LOCAL:
+                    try:
+                        import json
+                        res = subprocess.run(
+                            ["gh", "issue", "view", str(self.cfg.ISSUE_NUMBER), "--json", "title,body,labels"],
+                            capture_output=True,
+                            text=True,
+                            timeout=10,
+                        )
+                        if res.returncode == 0 and res.stdout.strip():
+                            data = json.loads(res.stdout)
+                            if not self.cfg.ISSUE_TITLE:
+                                self.cfg.ISSUE_TITLE = data.get("title")
+                            if not self.cfg.ISSUE_BODY:
+                                self.cfg.ISSUE_BODY = data.get("body")
+                            raw_labels = data.get("labels", [])
+                            for lbl in raw_labels:
+                                name = lbl.get("name", "") if isinstance(lbl, dict) else str(lbl)
+                                if name and name not in issue_labels:
+                                    issue_labels.append(name)
+                    except Exception as e:
+                        logger.debug(f"Failed to fetch issue details via gh CLI: {e}")
 
         if not is_pr and (self.cfg.ISSUE_TITLE or self.cfg.ISSUE_BODY):
+            has_opt_in_label = any(
+                lbl.lower() in ("auto-fix", "poing-work")
+                for lbl in issue_labels
+            )
             has_explicit_command = bool(
                 self.cfg.COMMENT_BODY
                 and any(
@@ -211,7 +247,7 @@ class FixService:
                     for cmd in ("/fix", "/work", "@poing-ai fix", "@poing-ai work")
                 )
             )
-            if not self.cfg.LOCAL and not has_explicit_command and not self.cfg.AUTO_WORK_ON_ISSUES:
+            if not self.cfg.LOCAL and not has_explicit_command and not has_opt_in_label and not self.cfg.AUTO_WORK_ON_ISSUES:
                 logger.info("Automatic issue fixing is disabled by default (auto_work_on_issues=false). Skipping.")
                 return "", []
 

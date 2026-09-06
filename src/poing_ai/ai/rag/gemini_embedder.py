@@ -24,6 +24,7 @@ logger = get_logger("ai.rag.gemini_embedder")
 EMBEDDING_API_VERSIONS = ["v1beta"]
 
 FALLBACK_EMBEDDING_MODELS = [
+    "text-embedding-004",
     "gemini-embedding-2-preview",
     "gemini-embedding-001",
 ]
@@ -35,7 +36,7 @@ class GeminiEmbedder(BaseEmbedder):
     def __init__(
         self,
         api_key: str,
-        primary_model: str = "gemini-embedding-2-preview",
+        primary_model: str = "text-embedding-004",
         fallback_models: Optional[List[str]] = None,
     ):
         self.api_key = api_key
@@ -83,9 +84,8 @@ class GeminiEmbedder(BaseEmbedder):
                         if resp.status_code == 429:
                             resp_text = resp.text.lower()
                             if "quota" in resp_text or "resource_exhausted" in resp_text:
-                                logger.warning(f"Embedding API quota exceeded ({model}): {resp.status_code}. Disabling embeddings for this run.")
-                                self._exhausted = True
-                                return []
+                                logger.warning(f"Embedding API quota exceeded ({model}): {resp.status_code}. Trying fallback...")
+                                break
                             if attempt < 1:
                                 time.sleep(1)
                                 continue
@@ -99,4 +99,6 @@ class GeminiEmbedder(BaseEmbedder):
                             continue
                         break
 
+        self._exhausted = True
+        logger.warning("All embedding models exhausted or quota reached. Disabling embeddings for this run.")
         return []

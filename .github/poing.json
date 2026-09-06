@@ -33,7 +33,8 @@
   },
   "fix": {
     "enabled": true,
-    "provider": "antigravity",
+    "provider": "gemini",
+    "model": "gemini-3.8-flash",
     "auto_work_on_issues": false,
     "branch_prefix": "fix/issue-"
   },
