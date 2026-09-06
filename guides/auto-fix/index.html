@@ -732,6 +732,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#autonomous-issue-worker-opt-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🎯 Autonomous Issue Worker (Opt-in)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🎯 Autonomous Issue Worker (Opt-in)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-to-trigger-issue-auto-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to Trigger Issue Auto-Fix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-worker-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue Worker Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#test-runner-auto-detection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1195,6 +1234,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#autonomous-issue-worker-opt-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🎯 Autonomous Issue Worker (Opt-in)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🎯 Autonomous Issue Worker (Opt-in)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-to-trigger-issue-auto-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to Trigger Issue Auto-Fix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-worker-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue Worker Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#test-runner-auto-detection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1262,6 +1340,27 @@
 <li>Commits the fixes under <code>poing-ai[bot]</code>.</li>
 <li>Pushes directly to the PR branch.</li>
 <li>Auto-resolves the review threads.</li>
+</ol>
+<hr />
+<h2 id="autonomous-issue-worker-opt-in">🎯 Autonomous Issue Worker (Opt-in)<a class="headerlink" href="#autonomous-issue-worker-opt-in" title="Permanent link">&para;</a></h2>
+<p>Poing AI can listen to issues, solve them, and open ready-to-merge Pull Requests. <strong>This feature is disabled by default</strong> to give repository maintainers full control.</p>
+<h3 id="how-to-trigger-issue-auto-fix">How to Trigger Issue Auto-Fix<a class="headerlink" href="#how-to-trigger-issue-auto-fix" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>On-demand via Comment (Default)</strong>: Comment <code>/fix</code> or <code>/work</code> on any open issue.</li>
+<li><strong>Label Opt-in</strong>: Add the <code>auto-fix</code> or <code>poing-work</code> label to the issue.</li>
+<li><strong>Automatic for All Issues</strong>: Enable in <code>.github/poing.json</code>:
+   <div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">"fix"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">"auto_work_on_issues"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="p">}</span>
+</span></code></pre></div></li>
+</ol>
+<h3 id="issue-worker-lifecycle">Issue Worker Lifecycle<a class="headerlink" href="#issue-worker-lifecycle" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Context &amp; Target Discovery</strong>: Extracts referenced file paths from the issue and queries the Vector RAG retriever to identify relevant source files.</li>
+<li><strong>Patching &amp; Test Execution</strong>: Generates drop-in snippet fixes and executes the project's test suite to verify the repair.</li>
+<li><strong>Branch &amp; Pull Request Creation</strong>: Creates branch <code>fix/issue-&lt;id&gt;-&lt;slug&gt;</code>, commits the tested changes, pushes to origin, and opens a Pull Request linking to <code>Closes #&lt;id&gt;</code>.</li>
+<li><strong>Issue Notification</strong>: Posts a confirmation comment on the issue with a link to the generated PR.</li>
 </ol>
 <hr />
 <h2 id="test-runner-auto-detection">⚙️ Test Runner Auto-Detection<a class="headerlink" href="#test-runner-auto-detection" title="Permanent link">&para;</a></h2>
