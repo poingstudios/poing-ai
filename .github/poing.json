@@ -31,6 +31,11 @@
     "auto_label": true,
     "auto_priority": true
   },
+  "fix": {
+    "enabled": true,
+    "provider": "gemini",
+    "model": "gemini-3.8-flash"
+  },
   "dependencies": {
     "enabled": true,
     "model": "gemini-3.5-flash-lite",
