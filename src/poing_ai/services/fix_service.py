@@ -63,13 +63,21 @@ class FixService:
             logger.info("No targets found to fix. Working tree or PR is clean.")
             return None
 
-        # 2. Read current content of target files
+        # 2. Read current content of target files (limit to top 5 files and 25k chars per file to stay within TPM quotas)
         target_files: Dict[str, str] = {}
-        for rel_path in target_file_paths:
+        MAX_FILE_CHARS = 25000
+        for rel_path in target_file_paths[:5]:
             abs_path = self.root_dir / rel_path
             if abs_path.exists() and abs_path.is_file():
                 try:
-                    target_files[rel_path] = abs_path.read_text(encoding="utf-8")
+                    content = abs_path.read_text(encoding="utf-8")
+                    if len(content) > MAX_FILE_CHARS:
+                        logger.warning(
+                            f"File {rel_path} exceeds {MAX_FILE_CHARS} chars ({len(content)} chars). "
+                            f"Truncating for prompt to conserve token quota."
+                        )
+                        content = content[:MAX_FILE_CHARS] + "\n# ... (truncated remaining content to conserve quota)"
+                    target_files[rel_path] = content
                 except Exception as e:
                     logger.warning(f"Could not read {rel_path}: {e}")
 
@@ -82,15 +90,20 @@ class FixService:
         if self.retriever:
             try:
                 rag_query = f"architecture coding standards fix guidelines {' '.join(target_file_paths)}"
-                docs = self.retriever.retrieve(rag_query)
+                docs = self.retriever.retrieve(rag_query, top_k=3)
                 if docs:
-                    rag_guidelines = "\n\n".join(f"### [{d.source}]\n{d.content}" for d in docs)
+                    combined_docs = "\n\n".join(f"### [{d.source}]\n{d.content}" for d in docs)
+                    if len(combined_docs) > 3000:
+                        combined_docs = combined_docs[:3000] + "\n... (truncated guidelines)"
+                    rag_guidelines = combined_docs
             except Exception as e:
                 logger.warning(f"RAG retrieval failed: {e}")
 
         engine_rules = ""
         if self.engine:
             engine_rules = self.engine.get_review_guidelines()
+            if len(engine_rules) > 2000:
+                engine_rules = engine_rules[:2000] + "\n... (truncated engine rules)"
 
         # 4. Agent Repair & Test Validation Loop (max 3 iterations)
         max_retries = 2
@@ -100,12 +113,15 @@ class FixService:
 
         for iteration in range(1, max_retries + 2):
             logger.info(f"Fix iteration {iteration}/{max_retries + 1}...")
+            truncated_trace = None
+            if test_failure_trace:
+                truncated_trace = test_failure_trace[-2000:] if len(test_failure_trace) > 2000 else test_failure_trace
             prompt = build_fix_prompt(
                 findings_context=findings_context,
                 target_files=target_files,
                 rag_guidelines=rag_guidelines,
                 engine_rules=engine_rules,
-                test_failure_trace=test_failure_trace,
+                test_failure_trace=truncated_trace,
             )
 
             last_fix_result = self.ai.generate_fix(prompt)

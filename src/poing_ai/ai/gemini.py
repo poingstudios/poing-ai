@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import re
 import time
 from typing import Any, Dict, List, Optional
 import requests
@@ -206,7 +207,18 @@ class GeminiProvider(BaseAIProvider):
                             feedback += part.get("text", "")
                     return feedback.strip() if feedback.strip() else None
 
-                if resp.status_code in (429, 503) and attempt < 2:
+                if resp.status_code == 429:
+                    resp_text = resp.text.lower()
+                    if "quota" in resp_text or "resource_exhausted" in resp_text:
+                        logger.warning(f"Model {model_name} quota exceeded (429). Fast failover to next fallback model...")
+                        return None
+                    if attempt < 2:
+                        wait = 3 * (attempt + 1)
+                        logger.warning(f"Model {model_name} rate-limited ({resp.status_code}), retry in {wait}s...")
+                        time.sleep(wait)
+                        continue
+
+                if resp.status_code == 503 and attempt < 2:
                     wait = 3 * (attempt + 1)
                     logger.warning(f"Model {model_name} busy ({resp.status_code}), retry in {wait}s...")
                     time.sleep(wait)
@@ -228,13 +240,25 @@ class GeminiProvider(BaseAIProvider):
     def _parse_json(self, raw_text: str) -> Optional[Dict[str, Any]]:
         try:
             raw = raw_text.strip()
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[-1]
-            if raw.endswith("```"):
-                raw = raw.rsplit("```", 1)[0]
+            raw = re.sub(r"<(?:think|thought)>[\s\S]*?</(?:think|thought)>", "", raw).strip()
+            if "```json" in raw:
+                match = re.search(r"```json\s*([\s\S]*?)\s*```", raw)
+                if match:
+                    raw = match.group(1).strip()
+            elif "```" in raw:
+                match = re.search(r"```\s*([\s\S]*?)\s*```", raw)
+                if match:
+                    raw = match.group(1).strip()
             return json.loads(raw.strip())
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}\nResponse: {raw_text[:400]}")
+        except json.JSONDecodeError:
+            start = raw.find("{")
+            end = raw.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                try:
+                    return json.loads(raw[start : end + 1])
+                except json.JSONDecodeError:
+                    pass
+            logger.error(f"Failed to parse JSON response:\nResponse: {raw[:400]}")
             return None
 
     def generate_review(
