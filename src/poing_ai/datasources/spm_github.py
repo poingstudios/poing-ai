@@ -38,10 +38,16 @@ class SPMGitHubDatasource(BaseDatasource):
             headers["Authorization"] = f"token {self._token}"
         return headers
 
-    def get_latest_version(self, repo_path: str) -> Optional[str]:
+    def get_latest_version(self, repo_path: str, ignored_versions: Optional[set] = None) -> Optional[str]:
         # Strip https://github.com/ and trailing .git if present
         clean_path = repo_path.replace("https://github.com/", "").rstrip(".git").strip("/")
-        return self._fetch_latest_release(clean_path) or self._fetch_first_tag(clean_path)
+        ignored = {str(v).lstrip("v").strip() for v in ignored_versions} if ignored_versions else set()
+
+        latest_rel = self._fetch_latest_release(clean_path)
+        if latest_rel and latest_rel not in ignored:
+            return latest_rel
+
+        return self._fetch_first_tag(clean_path, ignored=ignored)
 
     def _fetch_latest_release(self, repo_path: str) -> Optional[str]:
         url = f"https://api.github.com/repos/{repo_path}/releases/latest"
@@ -55,15 +61,18 @@ class SPMGitHubDatasource(BaseDatasource):
             pass
         return None
 
-    def _fetch_first_tag(self, repo_path: str) -> Optional[str]:
-        url = f"https://api.github.com/repos/{repo_path}/tags?per_page=5"
+    def _fetch_first_tag(self, repo_path: str, ignored: Optional[set] = None) -> Optional[str]:
+        url = f"https://api.github.com/repos/{repo_path}/tags?per_page=20"
         try:
             req = urllib.request.Request(url, headers=self._get_headers())
             with urllib.request.urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
                     tags = json.loads(resp.read().decode())
-                    if tags:
-                        return tags[0].get("name", "").lstrip("v")
+                    for tag in tags:
+                        ver = tag.get("name", "").lstrip("v")
+                        if ver and (not ignored or ver not in ignored):
+                            return ver
         except Exception:
             pass
         return None
+

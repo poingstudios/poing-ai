@@ -14,7 +14,7 @@
 
 from pathlib import Path
 import re
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from poing_ai.core.logging import get_logger
 from poing_ai.core.models import DependencyUpdate
@@ -33,13 +33,28 @@ class SwiftPackageParser(BaseParser):
         self,
         spm_datasource: Optional[SPMGitHubDatasource] = None,
         root_dir: Optional[Path] = None,
+        config: Optional[Any] = None,
+        ignore_versions: Optional[Dict[str, set]] = None,
+        pinned_versions: Optional[Dict[str, str]] = None,
     ):
         self.spm = spm_datasource or SPMGitHubDatasource()
         self.root_dir = root_dir or Path.cwd()
+        self.config = config
+
+        self._ignore_versions: Dict[str, set] = ignore_versions or (config.DEPENDENCY_IGNORE if config else {})
+        self._pinned_versions: Dict[str, str] = pinned_versions or (config.DEPENDENCY_PINNED if config else {})
 
     @property
     def target_type(self) -> str:
         return "swift_package"
+
+    def _get_ignored_versions(self, dependency: str) -> set:
+        clean_dep = dependency.replace("https://github.com/", "").rstrip(".git").strip("/")
+        return self._ignore_versions.get(clean_dep, set())
+
+    def _get_pinned_version(self, dependency: str) -> Optional[str]:
+        clean_dep = dependency.replace("https://github.com/", "").rstrip(".git").strip("/")
+        return self._pinned_versions.get(clean_dep)
 
     def sync_file(self, file_path: Path, dry_run: bool = False) -> List[DependencyUpdate]:
         if not file_path.exists():
@@ -57,21 +72,27 @@ class SwiftPackageParser(BaseParser):
             current_ver = match.group(3)
             suffix = match.group(4)
 
-            latest_ver = self.spm.get_latest_version(repo_path)
-            if latest_ver and latest_ver != current_ver:
-                logger.info(f"[Package.swift] {repo_path}: {current_ver} -> {latest_ver}")
+            pinned_ver = self._get_pinned_version(repo_path)
+            if pinned_ver:
+                target_ver = pinned_ver
+            else:
+                ignored = self._get_ignored_versions(repo_path)
+                target_ver = self.spm.get_latest_version(repo_path, ignored_versions=ignored)
+
+            if target_ver and target_ver != current_ver:
+                logger.info(f"[Package.swift] {repo_path}: {current_ver} -> {target_ver}")
                 updates.append(
                     DependencyUpdate(
                         platform="iOS SPM",
                         dependency=repo_path,
                         old_version=current_ver,
-                        new_version=latest_ver,
+                        new_version=target_ver,
                         file_path=rel_path,
-                        update_type=classify_version_update(current_ver, latest_ver),
+                        update_type=classify_version_update(current_ver, target_ver),
                     )
                 )
                 modified = True
-                return f"{prefix}{latest_ver}{suffix}"
+                return f"{prefix}{target_ver}{suffix}"
             return match.group(0)
 
         new_content = self.SPM_DEP_PATTERN.sub(_replace_spm_dep, content)
@@ -80,3 +101,4 @@ class SwiftPackageParser(BaseParser):
             file_path.write_text(new_content, encoding="utf-8")
 
         return updates
+

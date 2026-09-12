@@ -33,18 +33,21 @@ class MavenDatasource(BaseDatasource):
     def name(self) -> str:
         return "Maven"
 
-    def get_latest_version(self, coordinate: str) -> Optional[str]:
+    def get_latest_version(self, coordinate: str, ignored_versions: Optional[set] = None) -> Optional[str]:
         if ":" not in coordinate:
             return None
         group_id, artifact_id = coordinate.split(":", 1)
+        ignored = {str(v).lstrip("v").strip() for v in ignored_versions} if ignored_versions else set()
 
         for repo_base in self.REPOSITORIES:
-            version = self._fetch_version_from_repo(repo_base, group_id, artifact_id)
+            version = self._fetch_version_from_repo(repo_base, group_id, artifact_id, ignored=ignored)
             if version:
                 return version
         return None
 
-    def _fetch_version_from_repo(self, repo_base: str, group_id: str, artifact_id: str) -> Optional[str]:
+    def _fetch_version_from_repo(
+        self, repo_base: str, group_id: str, artifact_id: str, ignored: Optional[set] = None
+    ) -> Optional[str]:
         group_path = group_id.replace(".", "/")
         url = f"{repo_base}/{group_path}/{artifact_id}/maven-metadata.xml"
         try:
@@ -52,7 +55,17 @@ class MavenDatasource(BaseDatasource):
             with urllib.request.urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
                     root = ET.fromstring(resp.read())
-                    return root.findtext("./versioning/release") or root.findtext("./versioning/latest")
+                    candidate = root.findtext("./versioning/release") or root.findtext("./versioning/latest")
+                    if candidate and (not ignored or candidate not in ignored):
+                        return candidate
+                    if ignored:
+                        version_elems = root.findall("./versioning/versions/version")
+                        if version_elems:
+                            for v_elem in reversed(version_elems):
+                                v_text = (v_elem.text or "").strip()
+                                if v_text and v_text not in ignored:
+                                    return v_text
         except Exception:
             pass
         return None
+
