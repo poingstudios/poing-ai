@@ -61,7 +61,7 @@ inputs:
   grounding:
     description: 'Enable Google Search grounding for Gemini to query live web sources'
     required: false
-    default: 'true'
+    default: 'false'
 
 outputs:
   has_updates:

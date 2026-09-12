@@ -24,7 +24,7 @@ from poing_ai.ai.factory import create_ai_provider
 from poing_ai.ai.prompts.fix import build_fix_prompt
 from poing_ai.ai.rag.base import BaseRetriever
 from poing_ai.ai.rag.factory import create_retriever
-from poing_ai.core.config import Config
+from poing_ai.core.config import POING_LOGO_URL, Config
 from poing_ai.core.git import get_git_diff
 from poing_ai.core.github_client import GitHubClient
 from poing_ai.core.logging import get_logger
@@ -563,7 +563,7 @@ class FixService:
 
             # Post confirmation comment on GitHub PR
             if self.client and self.cfg.REPO and self.cfg.ISSUE_NUMBER:
-                body = f"## 🛠️ [🤖 Poing AI](https://github.com/poingstudios/poing-ai) Auto-Fix\n\n"
+                body = f'## 🛠️ <img src="{POING_LOGO_URL}" width="24" height="24" valign="middle" alt="Poing AI" /> [Poing AI](https://github.com/poingstudios/poing-ai) Auto-Fix\n\n'
                 body += f"Applied **{len(applied_fixes)} automated fix(es)**:\n"
                 for fix in applied_fixes:
                     body += f"- `{fix.file_path}`: {fix.explanation}\n"
@@ -628,7 +628,7 @@ class FixService:
 
                 # Comment on the original issue
                 issue_comment = (
-                    f"🤖 **[Poing AI](https://github.com/poingstudios/poing-ai)** has analyzed this issue and opened a pull request with an automated fix:\n\n"
+                    f'<img src="{POING_LOGO_URL}" width="18" height="18" valign="middle" alt="Poing AI" /> **[Poing AI](https://github.com/poingstudios/poing-ai)** has analyzed this issue and opened a pull request with an automated fix:\n\n'
                     f"👉 **Pull Request:** {pr_url if pr_url else branch_name}\n\n"
                     f"**Summary of Changes:**\n{result.summary if result and result.summary else ''}"
                 )
