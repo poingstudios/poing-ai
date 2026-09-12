@@ -340,3 +340,41 @@ class Config:
         self.MAX_CHARS = max_chars or int(get_env_optional("MAX_CHARS", str(default_max_chars)))
         self.MAX_BATCHES = max_batches or int(get_env_optional("MAX_BATCHES", str(section_cfg.get("max_batches", 5))))
         self.STRICT_GROUND_TRUTH = section_cfg.get("strict_ground_truth", True)
+
+        # Dependency sync policies
+        deps_cfg = file_config.get("dependencies", {})
+        raw_ignore = deps_cfg.get("ignore", {})
+        self.DEPENDENCY_IGNORE: Dict[str, set] = {}
+        for dep_key, versions in raw_ignore.items():
+            clean_key = dep_key.replace("https://github.com/", "").rstrip(".git").strip("/")
+            if isinstance(versions, str):
+                self.DEPENDENCY_IGNORE[clean_key] = {versions.lstrip("v").strip()}
+            elif isinstance(versions, (list, set, tuple)):
+                self.DEPENDENCY_IGNORE[clean_key] = {str(v).lstrip("v").strip() for v in versions}
+
+        raw_pinned = deps_cfg.get("pinned", {})
+        self.DEPENDENCY_PINNED: Dict[str, str] = {}
+        for dep_key, ver in raw_pinned.items():
+            clean_key = dep_key.replace("https://github.com/", "").rstrip(".git").strip("/")
+            self.DEPENDENCY_PINNED[clean_key] = str(ver).lstrip("v").strip()
+
+        self.DEPENDENCY_INCLUDE_GROUPS: List[str] = deps_cfg.get("include_groups", [])
+
+    def get_ignored_versions(self, dependency: str) -> set:
+        clean_dep = dependency.replace("https://github.com/", "").rstrip(".git").strip("/")
+        return self.DEPENDENCY_IGNORE.get(clean_dep, set())
+
+    def is_version_ignored(self, dependency: str, version: str) -> bool:
+        clean_ver = version.lstrip("v").strip()
+        return clean_ver in self.get_ignored_versions(dependency)
+
+    def get_pinned_version(self, dependency: str) -> Optional[str]:
+        clean_dep = dependency.replace("https://github.com/", "").rstrip(".git").strip("/")
+        return self.DEPENDENCY_PINNED.get(clean_dep)
+
+    def is_group_allowed(self, coordinate: str) -> bool:
+        if not self.DEPENDENCY_INCLUDE_GROUPS:
+            return True
+        group = coordinate.split(":", 1)[0] if ":" in coordinate else coordinate
+        return any(group.startswith(prefix) for prefix in self.DEPENDENCY_INCLUDE_GROUPS)
+

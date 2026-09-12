@@ -44,9 +44,9 @@ class SyncService:
         self.ai = ai_provider or create_ai_provider(config)
 
         self.parsers: Dict[str, BaseParser] = {
-            "gdscript_config": GDScriptConfigParser(root_dir=self.root_dir),
-            "gradle": GradleParser(root_dir=self.root_dir),
-            "swift_package": SwiftPackageParser(root_dir=self.root_dir),
+            "gdscript_config": GDScriptConfigParser(root_dir=self.root_dir, config=self.cfg),
+            "gradle": GradleParser(root_dir=self.root_dir, config=self.cfg),
+            "swift_package": SwiftPackageParser(root_dir=self.root_dir, config=self.cfg),
             "unity_package": UnityPackageParser(root_dir=self.root_dir),
             "unreal_plugin": UnrealPluginParser(root_dir=self.root_dir),
         }
