@@ -14,7 +14,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 class ReviewVerdict(str, Enum):
@@ -150,3 +150,47 @@ class FixResult:
             "tests_passed": self.tests_passed,
             "test_output": self.test_output,
         }
+
+
+@dataclass
+class ActionInput:
+    name: str
+    description: str = ""
+    required: bool = False
+    deprecated: bool = False
+    deprecation_message: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "required": self.required,
+            "deprecated": self.deprecated,
+            "deprecation_message": self.deprecation_message,
+        }
+
+
+@dataclass
+class ActionSchema:
+    action_ref: str
+    exists: bool = True
+    inputs: Dict[str, ActionInput] = field(default_factory=dict)
+
+    def is_input_declared(self, input_name: str) -> bool:
+        norm = input_name.strip().lower()
+        return any(k.lower() == norm for k in self.inputs)
+
+    def is_input_deprecated(self, input_name: str) -> bool:
+        norm = input_name.strip().lower()
+        for k, inp in self.inputs.items():
+            if k.lower() == norm:
+                return inp.deprecated
+        return False
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "action_ref": self.action_ref,
+            "exists": self.exists,
+            "inputs": {k: v.to_dict() for k, v in self.inputs.items()},
+        }
+

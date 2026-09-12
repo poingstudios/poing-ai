@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from poing_ai.core.config import COMMENT_FOOTER_HINT, FP_KEYWORDS, fingerprint
 from poing_ai.core.logging import get_logger
-from poing_ai.core.models import ReviewComment, ReviewFinding
+from poing_ai.core.models import ActionSchema, ReviewComment, ReviewFinding
 
 logger = get_logger("ai.false_positive")
 
@@ -168,12 +168,17 @@ def filter_suppressed_findings(
 def filter_action_version_false_positives(
     findings: List[ReviewFinding],
     comments: List[ReviewComment],
-    verified_actions: Optional[Dict[str, bool]] = None,
+    verified_actions: Optional[Dict[str, Any]] = None,
 ) -> Tuple[List[ReviewFinding], List[ReviewComment]]:
     if not verified_actions:
         return findings, comments
 
-    valid_actions = {k for k, v in verified_actions.items() if v}
+    valid_actions: Dict[str, Optional[ActionSchema]] = {}
+    for k, v in verified_actions.items():
+        exists = v.exists if isinstance(v, ActionSchema) else bool(v)
+        if exists:
+            valid_actions[k] = v if isinstance(v, ActionSchema) else None
+
     if not valid_actions:
         return findings, comments
 
@@ -187,37 +192,62 @@ def filter_action_version_false_positives(
         "conflicts with",
     ]
 
-    filtered_findings: List[ReviewFinding] = []
-    for f in findings:
-        finding_text = f.finding.lower()
-        is_fp = False
-        for action in valid_actions:
-            action_name = action.split("@")[0].lower()
-            tag = action.split("@")[-1].lower()
-            if (action_name in finding_text or tag in finding_text) and any(
-                kw in finding_text for kw in fp_action_phrases
-            ):
-                logger.info(f"Suppressing false-positive action finding for verified [{action}]: {f.finding}")
-                is_fp = True
-                break
-        if not is_fp:
-            filtered_findings.append(f)
+    fp_input_phrases = [
+        "not a valid",
+        "not valid",
+        "invalid parameter",
+        "invalid input",
+        "invalid option",
+        "does not exist",
+        "does not support",
+        "doesn't support",
+        "doesn't exist",
+        "unrecognized input",
+        "unrecognized parameter",
+        "unrecognized option",
+        "unknown parameter",
+        "unknown input",
+        "unexpected input",
+        "unexpected parameter",
+        "not recognized",
+        "not supported",
+        "not accept",
+        "unsupported parameter",
+        "unsupported input",
+        "no such input",
+        "no such parameter",
+        "fictional",
+    ]
 
-    filtered_comments: List[ReviewComment] = []
-    for c in comments:
-        comment_text = c.body.lower()
-        is_fp = False
-        for action in valid_actions:
+    def _is_action_fp(text: str) -> bool:
+        text_lower = text.lower()
+        for action, schema in valid_actions.items():
             action_name = action.split("@")[0].lower()
             tag = action.split("@")[-1].lower()
-            if (action_name in comment_text or tag in comment_text) and any(
-                kw in comment_text for kw in fp_action_phrases
+            action_repo = action_name.split("/")[-1]
+
+            # 1. Action version / non-existence false positive
+            if (action_name in text_lower or tag in text_lower) and any(
+                kw in text_lower for kw in fp_action_phrases
             ):
-                logger.info(f"Suppressing false-positive action comment for verified [{action}]: {c.body}")
-                is_fp = True
-                break
-        if not is_fp:
-            filtered_comments.append(c)
+                logger.info(f"Suppressing false-positive action finding/comment for verified [{action}]: {text[:80]}")
+                return True
+
+            # 2. Action declared input false positive
+            if schema and schema.inputs:
+                if action_name in text_lower or action_repo in text_lower:
+                    for inp_name in schema.inputs.keys():
+                        if inp_name.lower() in text_lower and any(
+                            kw in text_lower for kw in fp_input_phrases
+                        ):
+                            logger.info(
+                                f"Suppressing false-positive action input for verified [{action}] declared input [{inp_name}]: {text[:80]}"
+                            )
+                            return True
+        return False
+
+    filtered_findings = [f for f in findings if not _is_action_fp(f.finding)]
+    filtered_comments = [c for c in comments if not _is_action_fp(c.body)]
 
     return filtered_findings, filtered_comments
 

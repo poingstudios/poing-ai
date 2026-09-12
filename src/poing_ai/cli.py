@@ -149,6 +149,14 @@ def create_parser() -> argparse.ArgumentParser:
         help="Pull request head commit SHA",
     )
     parser.add_argument(
+        "--grounding",
+        "--search-grounding",
+        dest="enable_search_grounding",
+        action="store_true",
+        default=None,
+        help="Enable Google Search grounding for Gemini to query live web sources",
+    )
+    parser.add_argument(
         "--issue-number",
         default=None,
         help="Issue number for triage",
@@ -207,6 +215,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         output_format=args.output,
         fail_on_changes=args.fail_on_changes,
         labels=args.labels,
+        enable_search_grounding=args.enable_search_grounding,
     )
 
     if args.fix:

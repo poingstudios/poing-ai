@@ -12,14 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import json
 import re
 import sys
 from typing import Any, Dict, List, Optional
 import requests
 
+try:
+    import yaml
+except ImportError:
+    yaml = None
+
 from poing_ai import __version__
+from poing_ai.core.action_cache import ActionSchemaCache
 from poing_ai.core.logging import get_logger
+from poing_ai.core.models import ActionInput, ActionSchema
 
 logger = get_logger("github_client")
 
@@ -28,8 +36,9 @@ GRAPHQL_URL = "https://api.github.com/graphql"
 
 
 class GitHubClient:
-    def __init__(self, token: str):
+    def __init__(self, token: str, action_cache: Optional[ActionSchemaCache] = None):
         self.token = token
+        self.action_cache = action_cache or ActionSchemaCache()
 
     def _headers(self) -> Dict[str, str]:
         headers = {
@@ -409,17 +418,90 @@ class GitHubClient:
 
         return False
 
-    def extract_and_verify_actions(self, diff_text: str) -> Dict[str, bool]:
-        verified_actions: Dict[str, bool] = {}
+    def fetch_action_schema(self, action_ref: str) -> ActionSchema:
+        if "@" not in action_ref:
+            return ActionSchema(action_ref=action_ref, exists=False)
+
+        # 1. Check cache first
+        cached = self.action_cache.get(action_ref)
+        if cached is not None:
+            return cached
+
+        action_path, version = action_ref.split("@", 1)
+        parts = action_path.split("/")
+        if len(parts) < 2:
+            schema = ActionSchema(action_ref=action_ref, exists=False)
+            self.action_cache.set(schema)
+            return schema
+
+        owner = parts[0]
+        repo = parts[1]
+        subpath = "/".join(parts[2:]) if len(parts) > 2 else ""
+        path_prefix = f"{subpath}/" if subpath else ""
+
+        manifest_candidates = [
+            f"{BASE_URL}/repos/{owner}/{repo}/contents/{path_prefix}action.yml?ref={version}",
+            f"{BASE_URL}/repos/{owner}/{repo}/contents/{path_prefix}action.yaml?ref={version}",
+        ]
+
+        for url in manifest_candidates:
+            try:
+                resp = requests.get(url, headers=self._headers(), timeout=10)
+                if resp.status_code == 200:
+                    raw_text = ""
+                    data = resp.json()
+                    if isinstance(data, dict) and "content" in data and data.get("encoding") == "base64":
+                        raw_text = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
+                    elif isinstance(data, str):
+                        raw_text = data
+                    else:
+                        raw_text = resp.text
+
+                    inputs: Dict[str, ActionInput] = {}
+                    if yaml and raw_text:
+                        parsed = yaml.safe_load(raw_text)
+                        if isinstance(parsed, dict):
+                            raw_inputs = parsed.get("inputs", {})
+                            if isinstance(raw_inputs, dict):
+                                for iname, idata in raw_inputs.items():
+                                    desc = idata.get("description", "") if isinstance(idata, dict) else ""
+                                    req = bool(idata.get("required", False)) if isinstance(idata, dict) else False
+                                    dep_msg = idata.get("deprecationMessage", "") if isinstance(idata, dict) else ""
+                                    is_dep = bool(dep_msg) or "deprecated" in desc.lower()
+                                    inputs[str(iname)] = ActionInput(
+                                        name=str(iname),
+                                        description=desc,
+                                        required=req,
+                                        deprecated=is_dep,
+                                        deprecation_message=dep_msg,
+                                    )
+
+                    schema = ActionSchema(action_ref=action_ref, exists=True, inputs=inputs)
+                    self.action_cache.set(schema)
+                    logger.info(f"Fetched and cached Action schema for [{action_ref}] ({len(inputs)} declared inputs).")
+                    return schema
+            except Exception as e:
+                logger.debug(f"Error fetching action manifest from {url}: {e}")
+
+        # If manifest fetch failed, check if action exists via release/tag/branch
+        exists = self.verify_action_exists(action_ref)
+        schema = ActionSchema(action_ref=action_ref, exists=exists, inputs={})
+        self.action_cache.set(schema)
+        return schema
+
+    def extract_and_verify_actions(self, diff_text: str) -> Dict[str, ActionSchema]:
+        verified_actions: Dict[str, ActionSchema] = {}
         action_pattern = re.compile(r'uses:\s*([a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+(?:/[a-zA-Z0-9_.-]+)?@([a-zA-Z0-9_.-]+))')
 
         matches = action_pattern.findall(diff_text)
         for full_match, _ in matches:
             clean_match = full_match.strip("'\"")
             if clean_match not in verified_actions:
-                exists = self.verify_action_exists(clean_match)
-                verified_actions[clean_match] = exists
-                logger.info(f"Verified GitHub Action [{clean_match}]: {'VALID' if exists else 'INVALID'}")
+                schema = self.fetch_action_schema(clean_match)
+                verified_actions[clean_match] = schema
+                logger.info(f"Verified GitHub Action [{clean_match}]: {'VALID' if schema.exists else 'INVALID'}")
+
+        self.action_cache.save()
         return verified_actions
 
     def is_pull_request(self, repo: str, number: str) -> bool:

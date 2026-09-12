@@ -71,6 +71,40 @@ class TestGeminiProvider(unittest.TestCase):
         self.assertEqual(parsed.get("verdict"), "APPROVED")
         self.assertEqual(parsed.get("summary"), "All good")
 
+    def test_gemini_provider_search_grounding_payload(self):
+        provider_with_grounding = GeminiProvider(api_key="mock_key", enable_search_grounding=True)
+        provider_without_grounding = GeminiProvider(api_key="mock_key", enable_search_grounding=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": '{"verdict": "APPROVED", "summary": "Grounded review", "findings": [], "comments": []}'
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+
+        with patch("requests.post", return_value=mock_response) as mock_post:
+            provider_with_grounding.generate_review("Prompt text")
+            self.assertTrue(mock_post.called)
+            sent_payload = mock_post.call_args[1]["json"]
+            self.assertIn("tools", sent_payload)
+            self.assertEqual(sent_payload["tools"], [{"google_search": {}}])
+
+        with patch("requests.post", return_value=mock_response) as mock_post:
+            provider_without_grounding.generate_review("Prompt text")
+            self.assertTrue(mock_post.called)
+            sent_payload = mock_post.call_args[1]["json"]
+            self.assertNotIn("tools", sent_payload)
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -16,6 +16,7 @@ class TestCLI(unittest.TestCase):
             "--staged",
             "--output", "json",
             "--fail-on-changes",
+            "--grounding",
         ])
         self.assertTrue(args.local)
         self.assertEqual(args.provider, "ollama")
@@ -24,6 +25,7 @@ class TestCLI(unittest.TestCase):
         self.assertTrue(args.staged)
         self.assertEqual(args.output, "json")
         self.assertTrue(args.fail_on_changes)
+        self.assertTrue(args.enable_search_grounding)
 
     @patch.dict("os.environ", {}, clear=True)
     @patch("poing_ai.services.review_service.ReviewService.run")

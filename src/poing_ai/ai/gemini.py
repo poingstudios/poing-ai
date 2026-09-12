@@ -142,8 +142,14 @@ FIX_SCHEMA = {
 
 
 class GeminiProvider(BaseAIProvider):
-    def __init__(self, api_key: str, models_to_try: Optional[List[str]] = None):
+    def __init__(
+        self,
+        api_key: str,
+        models_to_try: Optional[List[str]] = None,
+        enable_search_grounding: bool = False,
+    ):
         self.api_key = api_key
+        self.enable_search_grounding = enable_search_grounding
         self.models_to_try = models_to_try or [
             "gemini-3.8-flash",
             "gemini-3.7-flash",
@@ -175,6 +181,9 @@ class GeminiProvider(BaseAIProvider):
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": config,
         }
+
+        if self.enable_search_grounding:
+            payload["tools"] = [{"google_search": {}}]
 
         if response_schema:
             payload["generationConfig"]["responseMimeType"] = "application/json"

@@ -52,6 +52,7 @@ from poing_ai.core.git import (
 from poing_ai.core.github_client import GitHubClient
 from poing_ai.core.logging import get_logger
 from poing_ai.core.models import (
+    ActionSchema,
     ReviewComment,
     ReviewFinding,
     ReviewResult,
@@ -217,9 +218,9 @@ class ReviewService:
         engine_guidelines = engine_analyzer.get_review_guidelines()
         logger.info(f"Detected engine/ecosystem: {engine_analyzer.name}")
 
-        # Live Action Verification
-        verified_actions: Dict[str, bool] = {}
-        if not self.cfg.LOCAL and self.cfg.GITHUB_TOKEN:
+        # Live Action Verification & Schema Ground Truth
+        verified_actions: Dict[str, ActionSchema] = {}
+        if self.client and (self.cfg.GITHUB_TOKEN or self.cfg.LOCAL):
             verified_actions = self.client.extract_and_verify_actions(diff)
 
         effective_max_chars = get_model_max_chars(self.cfg.PRIMARY_MODEL, self.cfg.MAX_CHARS)
