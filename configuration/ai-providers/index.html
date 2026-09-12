@@ -1167,6 +1167,10 @@
 <li><strong>Setup</strong>:
   <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GEMINI_API_KEY</span><span class="o">=</span><span class="s2">"your-gemini-key"</span>
 </span></code></pre></div></li>
+<li><strong>Search Grounding</strong>:
+  Dynamically search live Google Search results for up-to-date documentation and release notes:
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>poing<span class="w"> </span>--local<span class="w"> </span>--grounding
+</span></code></pre></div></li>
 </ul>
 <hr />
 <h2 id="3-local-ollama-vllm-offline-private">3. Local Ollama &amp; vLLM (Offline / Private)<a class="headerlink" href="#3-local-ollama-vllm-offline-private" title="Permanent link">&para;</a></h2>
@@ -1174,8 +1178,8 @@
 <ul>
 <li><strong>Supported Models</strong>: <code>deepseek-r1:latest</code>, <code>deepseek-coder:6.7b</code>, <code>qwen2.5-coder:7b</code>, <code>llama3.3:latest</code></li>
 <li><strong>Setup</strong>:
-  <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ollama<span class="w"> </span>serve
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>deepseek-r1:latest
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ollama<span class="w"> </span>serve
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>ollama<span class="w"> </span>--model<span class="w"> </span>deepseek-r1:latest
 </span></code></pre></div></li>
 </ul>
 <hr />
@@ -1184,12 +1188,12 @@
 <ul>
 <li><strong>Supported Models</strong>: <code>gpt-4o-mini</code>, <code>gpt-4o</code>, <code>deepseek-chat</code>, <code>deepseek-reasoner</code></li>
 <li><strong>Setup (DeepSeek)</strong>:
-  <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">DEEPSEEK_API_KEY</span><span class="o">=</span><span class="s2">"sk-..."</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>deepseek<span class="w"> </span>--model<span class="w"> </span>deepseek-chat
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">DEEPSEEK_API_KEY</span><span class="o">=</span><span class="s2">"sk-..."</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>deepseek<span class="w"> </span>--model<span class="w"> </span>deepseek-chat
 </span></code></pre></div></li>
 <li><strong>Setup (Custom Base URL)</strong>:
-  <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPENAI_API_KEY</span><span class="o">=</span><span class="s2">"sk-..."</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>openai<span class="w"> </span>--api-base<span class="w"> </span><span class="s2">"https://openrouter.ai/api/v1"</span><span class="w"> </span>--model<span class="w"> </span><span class="s2">"anthropic/claude-3.5-sonnet"</span>
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPENAI_API_KEY</span><span class="o">=</span><span class="s2">"sk-..."</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>poing<span class="w"> </span>--local<span class="w"> </span>--provider<span class="w"> </span>openai<span class="w"> </span>--api-base<span class="w"> </span><span class="s2">"https://openrouter.ai/api/v1"</span><span class="w"> </span>--model<span class="w"> </span><span class="s2">"anthropic/claude-3.5-sonnet"</span>
 </span></code></pre></div></li>
 </ul>
 
