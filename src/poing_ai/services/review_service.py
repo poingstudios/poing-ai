@@ -389,7 +389,7 @@ class ReviewService:
         verdict_label = VERDICT_MAP.get(result.verdict.value, str(result.verdict))
 
         body_parts = [
-            f'## [<img src="{POING_LOGO_URL}" width="24" height="24" valign="middle" alt="Poing AI" /> Poing AI](https://github.com/poingstudios/poing-ai)\n'
+            f'## [<img src="{POING_LOGO_URL}" width="24" height="24" valign="middle" alt="" /> Poing AI](https://github.com/poingstudios/poing-ai)\n'
         ]
 
         if meta_line:
