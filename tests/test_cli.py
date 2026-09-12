@@ -27,6 +27,10 @@ class TestCLI(unittest.TestCase):
         self.assertTrue(args.fail_on_changes)
         self.assertTrue(args.enable_search_grounding)
 
+        # Test --no-grounding
+        args_no_grounding = parser.parse_args(["--no-grounding"])
+        self.assertFalse(args_no_grounding.enable_search_grounding)
+
     @patch.dict("os.environ", {}, clear=True)
     @patch("poing_ai.services.review_service.ReviewService.run")
     def test_main_review_success(self, mock_review_run):

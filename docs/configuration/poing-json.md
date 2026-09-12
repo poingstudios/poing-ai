@@ -37,6 +37,6 @@ You can customize Poing AI behavior across your repository using an optional `.g
 
 - **`provider`**: Default provider (`gemini`, `ollama`, `openai`, `deepseek`).
 - **`model`**: Default model name.
-- **`enable_search_grounding`**: Enables live Google Search grounding for Gemini to query external docs and release notes dynamically (`bool`, default: `false`).
+- **`enable_search_grounding`**: Google Search grounding for Gemini to query external docs and release notes dynamically (`bool`, default: `true`). Set to `false` to disable.
 - **`review.rag.guidelines_dirs`**: Folders to scan for custom guidelines and rules.
 - **`review.fallback_models`**: Backup models to automatically retry if the primary model hits rate limits or timeouts.
