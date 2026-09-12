@@ -129,6 +129,11 @@ def fingerprint(path: str, body: str, line: Optional[int] = None) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+def location_fingerprint(path: str, line: Optional[int] = None) -> str:
+    raw = f"{path}:{line}" if line is not None else path
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
 def get_env_optional(key: str, default: str = "") -> str:
     return os.environ.get(key, default)
 

@@ -45,8 +45,53 @@ def _is_bot_comment_by_login(author_login: Optional[str], bot_login: Optional[st
     return False
 
 
-def fetch_thumbs_down_fingerprints(threads: List[Dict[str, Any]], bot_login: Optional[str]) -> Set[str]:
-    suppressed: Set[str] = set()
+import difflib
+
+
+def _normalize_comment_text(text: str) -> str:
+    cleaned = strip_footer(text).lower()
+    cleaned = re.sub(r"```.*?```", "", cleaned, flags=re.DOTALL)
+    cleaned = re.sub(r"`.*?`", "", cleaned)
+    cleaned = re.sub(r"[^\w\s]", " ", cleaned)
+    return " ".join(cleaned.split())
+
+
+class SuppressionSet(set):
+    """Set of suppressed fingerprints with (path, line) and fuzzy text tracking."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.locations: Set[Tuple[str, int]] = set()
+        self.comment_texts: List[Tuple[str, Optional[int], str]] = []
+
+    def add_suppression(self, path: str, line: Optional[int], body: str, fp: str) -> None:
+        self.add(fp)
+        if line is not None:
+            self.locations.add((path, int(line)))
+        self.comment_texts.append((path, line, body))
+
+    def is_suppressed_location(self, path: str, line: Optional[int]) -> bool:
+        if line is not None and (path, int(line)) in self.locations:
+            return True
+        return False
+
+    def is_fuzzy_match(self, path: str, body: str, line: Optional[int] = None, threshold: float = 0.7) -> bool:
+        norm_body = _normalize_comment_text(body)
+        for prev_path, prev_line, prev_body in self.comment_texts:
+            if prev_path == path:
+                if line is not None and prev_line is not None and abs(line - prev_line) > 1:
+                    continue
+                prev_norm = _normalize_comment_text(prev_body)
+                if prev_norm == norm_body:
+                    return True
+                similarity = difflib.SequenceMatcher(None, norm_body, prev_norm).ratio()
+                if similarity >= threshold:
+                    return True
+        return False
+
+
+def fetch_thumbs_down_fingerprints(threads: List[Dict[str, Any]], bot_login: Optional[str]) -> SuppressionSet:
+    suppressed = SuppressionSet()
 
     for thread in threads:
         if not thread:
@@ -69,7 +114,7 @@ def fetch_thumbs_down_fingerprints(threads: List[Dict[str, Any]], bot_login: Opt
             path = thread.get("path", "")
             line = thread.get("line")
             fp = fingerprint(path, body, line)
-            suppressed.add(fp)
+            suppressed.add_suppression(path, line, body, fp)
 
     if suppressed:
         logger.info(f"Found {len(suppressed)} previously 👎'd comment(s) to suppress")
@@ -80,7 +125,44 @@ def fetch_thumbs_down_fingerprints(threads: List[Dict[str, Any]], bot_login: Opt
 def is_suppressed(comment_body: str, path: str, line: Optional[int], suppressed_fingerprints: Set[str]) -> bool:
     clean_body = strip_footer(comment_body)
     fp = fingerprint(path, clean_body, line)
-    return fp in suppressed_fingerprints
+    if fp in suppressed_fingerprints:
+        return True
+
+    if isinstance(suppressed_fingerprints, SuppressionSet):
+        if suppressed_fingerprints.is_suppressed_location(path, line):
+            return True
+        if suppressed_fingerprints.is_fuzzy_match(path, clean_body, line=line):
+            return True
+
+    if line is not None:
+        if f"{path}:{line}" in suppressed_fingerprints or (path, line) in suppressed_fingerprints:  # type: ignore
+            return True
+
+    return False
+
+
+def filter_suppressed_findings(
+    findings: List[ReviewFinding],
+    suppressed_locations: Set[Tuple[str, int]],
+    suppressed_fps: Set[str],
+) -> List[ReviewFinding]:
+    filtered: List[ReviewFinding] = []
+    for f in findings:
+        fp = fingerprint(f.file, f.finding)
+        if fp in suppressed_fps:
+            logger.info(f"Suppressing finding matching suppressed fingerprint: {f.finding[:80]}")
+            continue
+
+        is_loc_suppressed = False
+        for path, line in suppressed_locations:
+            if f.file == path:
+                if re.search(rf"(?:\bL|\bline\s*|:){line}\b", f.finding, re.IGNORECASE):
+                    logger.info(f"Suppressing finding for {path}:{line}: {f.finding[:80]}")
+                    is_loc_suppressed = True
+                    break
+        if not is_loc_suppressed:
+            filtered.append(f)
+    return filtered
 
 
 def filter_action_version_false_positives(
