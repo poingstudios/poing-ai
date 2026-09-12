@@ -1,4 +1,8 @@
-# 🤖 Poing AI
+<p align="center">
+  <img src="assets/logo.png" alt="Poing AI Logo" width="160" />
+</p>
+
+# Poing AI
 
 <p align="center">
   <strong>Intelligent AI Code Review, Issue Triage, and Multi-Platform Dependency Automation</strong>

@@ -83,6 +83,8 @@ FP_KEYWORDS = [
     "fictional", "not a valid",
 ]
 
+POING_LOGO_URL = "https://raw.githubusercontent.com/poingstudios/poing-ai/master/docs/assets/logo.png"
+
 COMMENT_FOOTER_HINT = (
     "\n\n---\n"
     "<sub>👍 helpful · 👎 false positive</sub>"
@@ -90,13 +92,13 @@ COMMENT_FOOTER_HINT = (
 
 TRIAGE_FOOTER = (
     "\n\n---\n"
-    "<sub>🤖 Triaged by [Poing AI](https://github.com/poingstudios/poing-ai) · ⭐ Leave a star to support the project!</sub>"
+    f"<sub><img src=\"{POING_LOGO_URL}\" width=\"14\" height=\"14\" valign=\"middle\" alt=\"Poing AI\" /> Triaged by [Poing AI](https://github.com/poingstudios/poing-ai) · ⭐ Leave a star to support the project!</sub>"
 )
 
 REVIEW_FOOTER = (
     "\n\n---\n"
     "<details>\n"
-    "<summary>ℹ️ <b>About Poing AI</b></summary>\n<br>\n\n"
+    f"<summary><img src=\"{POING_LOGO_URL}\" width=\"16\" height=\"16\" valign=\"middle\" alt=\"Poing AI\" /> <b>About Poing AI</b></summary>\n<br>\n\n"
     "[Poing AI](https://github.com/poingstudios/poing-ai) is an open-source AI code reviewer and guidelines verifier for Godot, Unity, Unreal, and multi-platform repositories.\n\n"
     "⭐ **Support:** If you find Poing AI helpful, consider starring the repo on [GitHub](https://github.com/poingstudios/poing-ai)!\n\n"
     "**Commands:**\n"

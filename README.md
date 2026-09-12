@@ -1,14 +1,33 @@
-# 🤖 Poing AI
+<p align="center">
+  <img src="docs/assets/logo.png" alt="Poing AI Logo" width="160" />
+</p>
 
-[![Documentation](https://img.shields.io/badge/Docs-poingstudios.github.io%2Fpoing--ai-purple?logo=materialformkdocs)](https://poingstudios.github.io/poing-ai/)
-[![PyPI](https://img.shields.io/pypi/v/poing-ai.svg)](https://pypi.org/project/poing-ai/)
-[![GitHub Actions Marketplace](https://img.shields.io/badge/Marketplace-Poing%20AI-blue?logo=github)](https://github.com/marketplace/actions/poing-ai)
-[![CI](https://github.com/poingstudios/poing-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/poingstudios/poing-ai/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+<h1 align="center">Poing AI</h1>
+
+<p align="center">
+  <strong>Enterprise-grade AI code reviewer, issue triager, and multi-platform dependency updater</strong>
+</p>
+
+<p align="center">
+  <a href="https://poingstudios.github.io/poing-ai/"><img src="https://img.shields.io/badge/Docs-poingstudios.github.io%2Fpoing--ai-purple?logo=materialformkdocs" alt="Documentation"></a>
+  <a href="https://github.com/poingstudios/poing-ai/actions/workflows/ci.yml"><img src="https://github.com/poingstudios/poing-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/poingstudios/poing-ai/releases"><img src="https://img.shields.io/github/v/release/poingstudios/poing-ai?logo=github" alt="Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
+  <br>
+  <a href="https://github.com/marketplace/actions/poing-ai"><img src="https://img.shields.io/badge/Marketplace-Poing%20AI-blue?logo=github" alt="Marketplace"></a>
+  <a href="https://pypi.org/project/poing-ai/"><img src="https://img.shields.io/pypi/v/poing-ai.svg?logo=pypi" alt="PyPI"></a>
+  <a href="https://pypi.org/project/poing-ai/"><img src="https://img.shields.io/pypi/pyversions/poing-ai.svg?logo=python" alt="Python Versions"></a>
+  <br>
+  <a href="https://pepy.tech/project/poing-ai"><img src="https://static.pepy.tech/badge/poing-ai/month" alt="Monthly Downloads"></a>
+  <a href="https://pepy.tech/project/poing-ai"><img src="https://static.pepy.tech/badge/poing-ai" alt="Total Downloads"></a>
+  <a href="https://github.com/poingstudios/poing-ai/stargazers"><img src="https://img.shields.io/github/stars/poingstudios/poing-ai?style=flat&logo=github" alt="GitHub Stars"></a>
+</p>
+
+<p align="center">
+  📖 <a href="https://poingstudios.github.io/poing-ai/"><strong>Official Documentation</strong></a> · 🚀 <a href="#-quickstart"><strong>Quickstart</strong></a> · 🏛️ <a href="#-how-it-works"><strong>Architecture</strong></a>
+</p>
 
 **Poing AI** is an enterprise-grade AI code reviewer, issue triager, and multi-platform dependency updater powered by Google Gemini, Ollama, and OpenAI-compatible models. Built with dedicated static-analysis analyzers for game engine plugins (**Godot Engine**, **Unity**, **Unreal Engine**) and multi-platform native code.
-
-📖 **[Official Documentation](https://poingstudios.github.io/poing-ai/)** · 🚀 **[Quickstart](#-quickstart)** · 🏛️ **[Architecture](#-how-it-works)**
 
 ---
 

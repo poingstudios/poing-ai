@@ -35,6 +35,7 @@ from poing_ai.ai.rag.test_pairing import TestPairingRetriever
 from poing_ai.ai.thread_resolver import fetch_resolved_thread_locations, resolve_fixed_threads
 from poing_ai.core.config import (
     GITHUB_EVENT_MAP,
+    POING_LOGO_URL,
     REVIEW_FOOTER,
     VERDICT_MAP,
     VERDICT_PRIORITY,
@@ -385,10 +386,11 @@ class ReviewService:
             meta_items.append(f"**Model:** `{model_name}`")
 
         meta_line = (" · ".join(meta_items) + "\n") if meta_items else ""
-
         verdict_label = VERDICT_MAP.get(result.verdict.value, str(result.verdict))
 
-        body_parts = [f"## [🤖 Poing AI](https://github.com/poingstudios/poing-ai)\n"]
+        body_parts = [
+            f'## <img src="{POING_LOGO_URL}" width="24" height="24" valign="middle" alt="Poing AI" /> [Poing AI](https://github.com/poingstudios/poing-ai)\n'
+        ]
 
         if meta_line:
             body_parts.append(meta_line)
