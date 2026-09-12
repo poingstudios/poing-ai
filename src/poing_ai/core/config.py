@@ -98,7 +98,7 @@ TRIAGE_FOOTER = (
 REVIEW_FOOTER = (
     "\n\n---\n"
     "<details>\n"
-    f"<summary><img src=\"{POING_LOGO_URL}\" width=\"16\" height=\"16\" valign=\"middle\" alt=\"Poing AI\" /> <b>About Poing AI</b></summary>\n<br>\n\n"
+    f"<summary>ℹ️ <img src=\"{POING_LOGO_URL}\" width=\"16\" height=\"16\" valign=\"middle\" alt=\"Poing AI\" /> <b>About Poing AI</b></summary>\n<br>\n\n"
     "[Poing AI](https://github.com/poingstudios/poing-ai) is an open-source AI code reviewer and guidelines verifier for Godot, Unity, Unreal, and multi-platform repositories.\n\n"
     "⭐ **Support:** If you find Poing AI helpful, consider starring the repo on [GitHub](https://github.com/poingstudios/poing-ai)!\n\n"
     "**Commands:**\n"

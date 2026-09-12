@@ -563,7 +563,7 @@ class FixService:
 
             # Post confirmation comment on GitHub PR
             if self.client and self.cfg.REPO and self.cfg.ISSUE_NUMBER:
-                body = f'## 🛠️ <img src="{POING_LOGO_URL}" width="24" height="24" valign="middle" alt="Poing AI" /> [Poing AI](https://github.com/poingstudios/poing-ai) Auto-Fix\n\n'
+                body = f'## 🛠️ [<img src="{POING_LOGO_URL}" width="24" height="24" valign="middle" alt="Poing AI" /> Poing AI](https://github.com/poingstudios/poing-ai) Auto-Fix\n\n'
                 body += f"Applied **{len(applied_fixes)} automated fix(es)**:\n"
                 for fix in applied_fixes:
                     body += f"- `{fix.file_path}`: {fix.explanation}\n"
