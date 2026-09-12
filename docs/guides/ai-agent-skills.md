@@ -46,12 +46,11 @@ on:
         description: 'PR or Issue number'
         required: true
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   review:
+    concurrency:
+      group: poing-ai-review-${{ inputs.number || github.event.pull_request.number || github.event.issue.number || github.ref }}
+      cancel-in-progress: true
     if: >
       (github.event_name == 'pull_request_target' && !github.event.pull_request.draft) ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request && (contains(github.event.comment.body, '/review') || contains(github.event.comment.body, '@poing-ai review'))) ||
@@ -80,6 +79,9 @@ jobs:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 
   triage:
+    concurrency:
+      group: poing-ai-triage-${{ inputs.number || github.event.issue.number || github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     if: >
       github.event_name == 'issues' ||
       (github.event_name == 'workflow_dispatch' && inputs.mode == 'triage')
