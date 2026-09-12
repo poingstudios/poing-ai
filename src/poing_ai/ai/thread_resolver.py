@@ -73,6 +73,22 @@ def collect_thread_fingerprints(
     return unresolved_fp, fp_to_thread
 
 
+def fetch_resolved_thread_locations(threads: List[Dict[str, Any]]) -> Set[Tuple[str, int]]:
+    resolved_locations: Set[Tuple[str, int]] = set()
+    for thread in threads:
+        if not thread:
+            continue
+        if not thread.get("isResolved", False):
+            continue
+        if thread.get("isOutdated", False):
+            continue
+        path = thread.get("path")
+        line = thread.get("line")
+        if path and line is not None:
+            resolved_locations.add((path, int(line)))
+    return resolved_locations
+
+
 def resolve_fixed_threads(
     client: GitHubClient,
     owner: str,
@@ -81,6 +97,7 @@ def resolve_fixed_threads(
     current_fingerprints: Set[str],
     reviewed_paths: Set[str],
     bot_login: Optional[str] = None,
+    current_locations: Optional[Set[Tuple[str, int]]] = None,
 ) -> int:
     threads = client.fetch_review_threads(owner, repo_name, pr_number)
     if not threads:
@@ -95,6 +112,9 @@ def resolve_fixed_threads(
             continue
         if info["path"] not in reviewed_paths:
             continue
+        if info["line"] is not None and current_locations is not None:
+            if (info["path"], info["line"]) in current_locations:
+                continue
         if fp not in current_fingerprints:
             thread_id = info["id"]
             comment_id = info["comment_id"]

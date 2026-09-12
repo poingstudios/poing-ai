@@ -24,6 +24,7 @@ from poing_ai.ai.false_positive import (
     filter_action_version_false_positives,
     filter_model_false_positives,
     filter_speculative_false_positives,
+    filter_suppressed_findings,
     is_suppressed,
 )
 from poing_ai.ai.prompts.review import build_review_prompt
@@ -31,7 +32,7 @@ from poing_ai.ai.rag.factory import create_retriever
 from poing_ai.ai.rag.query_builder import build_diff_rag_query
 from poing_ai.ai.rag.symbol_impact import SymbolImpactRetriever
 from poing_ai.ai.rag.test_pairing import TestPairingRetriever
-from poing_ai.ai.thread_resolver import resolve_fixed_threads
+from poing_ai.ai.thread_resolver import fetch_resolved_thread_locations, resolve_fixed_threads
 from poing_ai.core.config import (
     GITHUB_EVENT_MAP,
     REVIEW_FOOTER,
@@ -70,6 +71,27 @@ def pick_verdict(verdicts: List[ReviewVerdict]) -> ReviewVerdict:
             best_score = score
             best = v if isinstance(v, ReviewVerdict) else ReviewVerdict(v)
     return best
+
+
+def reevaluate_verdict(
+    current_verdict: ReviewVerdict,
+    findings: List[ReviewFinding],
+    comments: List[ReviewComment],
+) -> ReviewVerdict:
+    has_critical = any(f.severity == "🔴" for f in findings)
+    has_warnings_or_suggestions = any(f.severity in ("🟡", "🟢") for f in findings) or bool(comments)
+
+    if has_critical:
+        return ReviewVerdict.CHANGES_REQUESTED
+
+    if has_warnings_or_suggestions:
+        if current_verdict == ReviewVerdict.CHANGES_REQUESTED:
+            logger.info("Downgrading verdict from CHANGES_REQUESTED to APPROVED_WITH_SUGGESTIONS after suppression/filtering.")
+        return ReviewVerdict.APPROVED_WITH_SUGGESTIONS
+
+    if current_verdict == ReviewVerdict.CHANGES_REQUESTED:
+        logger.info("Downgrading verdict from CHANGES_REQUESTED to APPROVED after suppression/filtering.")
+    return ReviewVerdict.APPROVED
 
 
 def _sanitize_markdown_text(text: str, strip_line_prefix: bool = False) -> str:
@@ -285,14 +307,34 @@ class ReviewService:
                         seen_comments.add(fp)
                         unique_comments.append(c)
 
-        # Thumbs-down suppression
+        # Thumbs-down suppression & Resolved thread tracking
+        resolved_locations: Set[Tuple[str, int]] = set()
+        suppressed_locations: Set[Tuple[str, int]] = set()
+        suppressed_fps: Set[str] = set()
+
         if not self.cfg.LOCAL and self.cfg.REPO and self.cfg.PR_NUMBER:
             threads = self.client.fetch_review_threads(self.cfg.owner, self.cfg.repo_name, self.cfg.PR_NUMBER)
             suppressed_fps = fetch_thumbs_down_fingerprints(threads, self.cfg.BOT_LOGIN)
-            unique_comments = [
-                c for c in unique_comments
-                if not is_suppressed(c.body, c.path, c.line, suppressed_fps)
-            ]
+            resolved_locations = fetch_resolved_thread_locations(threads)
+
+            if hasattr(suppressed_fps, "locations"):
+                suppressed_locations.update(suppressed_fps.locations)
+            suppressed_locations.update(resolved_locations)
+
+            filtered_comments: List[ReviewComment] = []
+            for c in unique_comments:
+                if (c.path, c.line) in resolved_locations:
+                    logger.info(f"Suppressing comment on {c.path}:{c.line}: review thread is already resolved.")
+                    continue
+                if is_suppressed(c.body, c.path, c.line, suppressed_fps):
+                    logger.info(f"Suppressing comment on {c.path}:{c.line}: previously received 👎 reaction.")
+                    continue
+                filtered_comments.append(c)
+            unique_comments = filtered_comments
+
+            unique_findings = filter_suppressed_findings(
+                unique_findings, suppressed_locations, suppressed_fps
+            )
 
         # False-positive filters
         unique_findings, unique_comments = filter_action_version_false_positives(
@@ -302,6 +344,16 @@ class ReviewService:
             unique_findings, unique_comments
         )
         unique_findings = filter_model_false_positives(unique_findings)
+
+        # Re-evaluate final verdict after filtering and suppression
+        final_verdict = reevaluate_verdict(final_verdict, unique_findings, unique_comments)
+        if (
+            final_verdict == ReviewVerdict.APPROVED
+            and not unique_findings
+            and not unique_comments
+            and any(r.verdict == ReviewVerdict.CHANGES_REQUESTED for r in all_results)
+        ):
+            final_summary = "All previous findings resolved or suppressed. Changes approved."
 
         final_result = ReviewResult(
             verdict=final_verdict,
@@ -438,6 +490,7 @@ class ReviewService:
 
             # Auto-resolve fixed threads
             current_fps = {fingerprint(c.path, c.body, c.line) for c in result.comments}
+            current_locs = {(c.path, c.line) for c in result.comments}
             paths_to_check = (
                 reviewed_paths
                 if reviewed_paths is not None
@@ -451,6 +504,7 @@ class ReviewService:
                 current_fingerprints=current_fps,
                 reviewed_paths=paths_to_check,
                 bot_login=self.cfg.BOT_LOGIN,
+                current_locations=current_locs,
             )
         else:
             logger.info("[DRY_RUN] Skipped submitting review to GitHub.")

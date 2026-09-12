@@ -197,6 +197,7 @@ class GitHubClient:
                 nodes {
                   id
                   isResolved
+                  isOutdated
                   path
                   line
                   comments(first: 50) {
