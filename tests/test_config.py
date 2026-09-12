@@ -50,6 +50,30 @@ class TestConfig(unittest.TestCase):
         empty_cfg = Config(mode="review", gemini_api_key="test_key", config_data={})
         self.assertEqual(empty_cfg.PRIMARY_MODEL, "gemini-3.8-flash")
 
+    def test_search_grounding_defaults_and_overrides(self):
+        # Default is True out of the box
+        default_cfg = Config(mode="review", config_data={})
+        self.assertTrue(default_cfg.ENABLE_SEARCH_GROUNDING)
+
+        # Explicit parameter overrides
+        self.assertFalse(Config(mode="review", enable_search_grounding=False, config_data={}).ENABLE_SEARCH_GROUNDING)
+        self.assertTrue(Config(mode="review", enable_search_grounding=True, config_data={}).ENABLE_SEARCH_GROUNDING)
+
+        # Disabled via poing.json top-level
+        disabled_file_cfg = Config(mode="review", config_data={"enable_search_grounding": False})
+        self.assertFalse(disabled_file_cfg.ENABLE_SEARCH_GROUNDING)
+
+        # Disabled via poing.json section
+        disabled_section_cfg = Config(mode="review", config_data={"review": {"enable_search_grounding": False}})
+        self.assertFalse(disabled_section_cfg.ENABLE_SEARCH_GROUNDING)
+
+        # Disabled via environment variable
+        import os
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"ENABLE_SEARCH_GROUNDING": "false"}):
+            env_disabled_cfg = Config(mode="review", config_data={})
+            self.assertFalse(env_disabled_cfg.ENABLE_SEARCH_GROUNDING)
+
 
 if __name__ == "__main__":
     unittest.main()

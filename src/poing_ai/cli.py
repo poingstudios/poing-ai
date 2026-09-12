@@ -154,7 +154,14 @@ def create_parser() -> argparse.ArgumentParser:
         dest="enable_search_grounding",
         action="store_true",
         default=None,
-        help="Enable Google Search grounding for Gemini to query live web sources",
+        help="Enable Google Search grounding for Gemini to query live web sources (enabled by default)",
+    )
+    parser.add_argument(
+        "--no-grounding",
+        "--no-search-grounding",
+        dest="enable_search_grounding",
+        action="store_false",
+        help="Disable Google Search grounding for Gemini",
     )
     parser.add_argument(
         "--issue-number",

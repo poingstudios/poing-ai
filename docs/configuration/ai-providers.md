@@ -27,9 +27,9 @@ Powered by the official Google Gemini REST API.
   export GEMINI_API_KEY="your-gemini-key"
   ```
 - **Search Grounding**:
-  Dynamically search live Google Search results for up-to-date documentation and release notes:
+  Dynamically search live Google Search results for up-to-date documentation and release notes (enabled by default; disable with `--no-grounding`):
   ```bash
-  poing --local --grounding
+  poing --local --no-grounding
   ```
 
 ---

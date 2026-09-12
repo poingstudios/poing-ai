@@ -58,6 +58,10 @@ inputs:
     description: 'PR or Issue number (for manual workflow_dispatch)'
     required: false
     default: ''
+  grounding:
+    description: 'Enable Google Search grounding for Gemini to query live web sources'
+    required: false
+    default: 'true'
 
 outputs:
   has_updates:
@@ -118,5 +122,6 @@ runs:
         ISSUE_ACTION: ${{ github.event.action }}
         COMMENT_BODY: ${{ github.event.comment.body }}
         TRIGGER_ACTION: ${{ github.event.action }}
+        ENABLE_SEARCH_GROUNDING: ${{ inputs.grounding }}
       run: python -m poing_ai
       shell: bash
