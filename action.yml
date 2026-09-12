@@ -87,12 +87,15 @@ runs:
       shell: bash
 
     - name: Fetch Base Branch & PR Head (Review Mode)
-      if: inputs.mode == 'review' && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target')
+      if: inputs.mode == 'review' && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target' || github.event_name == 'issue_comment' || inputs.number != '')
       run: |
         BASE="${{ inputs.base-ref || github.event.pull_request.base.ref || 'master' }}"
         git fetch origin "$BASE" || true
-        if [ "${{ github.event_name }}" = "pull_request_target" ]; then
-          git fetch origin "pull/${{ github.event.pull_request.number }}/head" || true
+        PR_NUM="${{ inputs.number || github.event.pull_request.number || github.event.issue.number }}"
+        if [ -n "$PR_NUM" ] && [ "$PR_NUM" != "null" ]; then
+          echo "Fetching and checking out pull/$PR_NUM/head..."
+          git fetch origin "pull/$PR_NUM/head:pr-$PR_NUM" || true
+          git checkout "pr-$PR_NUM" || true
         fi
       shell: bash
 
