@@ -72,6 +72,7 @@ def create_ai_provider(config: Config) -> BaseAIProvider:
         return GeminiProvider(
             api_key=api_key,
             models_to_try=config.MODELS_TO_TRY,
+            enable_search_grounding=config.ENABLE_SEARCH_GROUNDING,
         )
 
     # Auto-detection logic when provider_name is empty or 'auto'
@@ -80,6 +81,7 @@ def create_ai_provider(config: Config) -> BaseAIProvider:
         return GeminiProvider(
             api_key=config.GEMINI_API_KEY,
             models_to_try=config.MODELS_TO_TRY,
+            enable_search_grounding=config.ENABLE_SEARCH_GROUNDING,
         )
 
     if config.OPENAI_API_KEY or config.DEEPSEEK_API_KEY:

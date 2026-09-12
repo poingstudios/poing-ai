@@ -178,6 +178,81 @@ class TestFalsePositive(unittest.TestCase):
         self.assertEqual(filtered[0].finding, "L42: Unused local variable")
         self.assertEqual(filtered[1].file, "src/other.gd")
 
+    def test_filter_action_version_false_positive(self):
+        findings = [
+            ReviewFinding(severity="🔴", file=".github/workflows/ci.yml", finding="actions/checkout@v7 does not exist"),
+            ReviewFinding(severity="🔴", file=".github/workflows/ci.yml", finding="actions/unknown@v1 is non-existent"),
+        ]
+        comments = [
+            ReviewComment(path=".github/workflows/ci.yml", line=10, body="actions/checkout@v7 is an invalid version"),
+        ]
+        verified_actions = {
+            "actions/checkout@v7": True,
+            "actions/unknown@v1": False,
+        }
+
+        filtered_findings, filtered_comments = filter_action_version_false_positives(
+            findings, comments, verified_actions
+        )
+        # actions/checkout@v7 is valid, so finding and comment for it are suppressed
+        self.assertEqual(len(filtered_findings), 1)
+        self.assertIn("actions/unknown@v1", filtered_findings[0].finding)
+        self.assertEqual(len(filtered_comments), 0)
+
+    def test_filter_action_input_schema_false_positive(self):
+        from poing_ai.core.models import ActionInput, ActionSchema
+
+        schema = ActionSchema(
+            action_ref="actions/create-github-app-token@v3",
+            exists=True,
+            inputs={
+                "client-id": ActionInput(name="client-id", required=False),
+                "private-key": ActionInput(name="private-key", required=True),
+                "app-id": ActionInput(name="app-id", deprecated=True),
+            },
+        )
+        verified_actions = {"actions/create-github-app-token@v3": schema}
+
+        findings = [
+            # False positive: claims declared input 'client-id' does not exist
+            ReviewFinding(
+                severity="🔴",
+                file=".github/workflows/poing-ai.yml",
+                finding="actions/create-github-app-token does not support client-id",
+            ),
+            # True positive: claims undeclared input 'foo-bar' does not exist
+            ReviewFinding(
+                severity="🔴",
+                file=".github/workflows/poing-ai.yml",
+                finding="actions/create-github-app-token uses invalid input foo-bar",
+            ),
+        ]
+        comments = [
+            # False positive: claims 'client-id' is not a valid parameter
+            ReviewComment(
+                path=".github/workflows/poing-ai.yml",
+                line=44,
+                body="'client-id' is not a valid parameter for actions/create-github-app-token@v3. Use 'app-id' instead.",
+            ),
+            # Legitimate comment: required parameter private-key missing
+            ReviewComment(
+                path=".github/workflows/poing-ai.yml",
+                line=45,
+                body="actions/create-github-app-token requires private-key parameter.",
+            ),
+        ]
+
+        filtered_findings, filtered_comments = filter_action_version_false_positives(
+            findings, comments, verified_actions
+        )
+
+        self.assertEqual(len(filtered_findings), 1)
+        self.assertIn("foo-bar", filtered_findings[0].finding)
+
+        self.assertEqual(len(filtered_comments), 1)
+        self.assertIn("requires private-key", filtered_comments[0].body)
+
 
 if __name__ == "__main__":
     unittest.main()
+

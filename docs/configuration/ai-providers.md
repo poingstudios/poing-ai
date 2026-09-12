@@ -26,6 +26,11 @@ Powered by the official Google Gemini REST API.
   ```bash
   export GEMINI_API_KEY="your-gemini-key"
   ```
+- **Search Grounding**:
+  Dynamically search live Google Search results for up-to-date documentation and release notes:
+  ```bash
+  poing --local --grounding
+  ```
 
 ---
 

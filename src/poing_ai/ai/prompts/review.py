@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
+
+from poing_ai.core.models import ActionSchema
 
 
 def build_review_prompt(
@@ -21,23 +23,46 @@ def build_review_prompt(
     guidelines: str = "",
     engine_guidelines: str = "",
     batch_label: str = "",
-    verified_actions: Optional[Dict[str, bool]] = None,
+    verified_actions: Optional[Dict[str, Any]] = None,
     file_contents: Optional[Dict[str, str]] = None,
     test_contents: Optional[Dict[str, str]] = None,
     symbol_impacts: Optional[Dict[str, List[str]]] = None,
 ) -> str:
     action_info = ""
     if verified_actions:
-        valid_list = [f"- `{k}`: VALID (Verified live release/tag on GitHub)" for k, v in verified_actions.items() if v]
-        invalid_list = [f"- `{k}`: INVALID (Not found on GitHub)" for k, v in verified_actions.items() if not v]
         lines = []
-        if valid_list:
-            lines.append("### Verified Action Versions (Live GitHub API Check):")
-            lines.extend(valid_list)
-            lines.append("\nCRITICAL: The actions marked VALID above have been confirmed to exist on GitHub. Do NOT claim they do not exist, and do NOT request changes for these valid versions.")
-        if invalid_list:
+        valid_items = []
+        invalid_items = []
+        for k, v in verified_actions.items():
+            exists = v.exists if isinstance(v, ActionSchema) else bool(v)
+            if exists:
+                valid_items.append((k, v if isinstance(v, ActionSchema) else None))
+            else:
+                invalid_items.append(k)
+
+        if valid_items:
+            lines.append("### Verified Actions & Ground Truth Schemas:")
+            for act_name, schema in valid_items:
+                if schema and schema.inputs:
+                    declared_parts = []
+                    for iname, inp in schema.inputs.items():
+                        if inp.deprecated:
+                            declared_parts.append(f"`{iname}` (deprecated)")
+                        else:
+                            declared_parts.append(f"`{iname}`")
+                    inputs_str = ", ".join(declared_parts)
+                    lines.append(f"- `{act_name}`:")
+                    lines.append(f"  - Declared inputs: {inputs_str}")
+                    lines.append(f"  - Rule: Do NOT claim declared inputs are invalid or unsupported.")
+                else:
+                    lines.append(f"- `{act_name}`: VALID (Verified live release/tag on GitHub)")
+            lines.append("\nCRITICAL: The actions marked VALID above have been confirmed to exist on GitHub. Do NOT claim they do not exist, and do NOT claim declared inputs are invalid or unsupported.")
+
+        if invalid_items:
             lines.append("### Unverified/Non-Existent Actions:")
-            lines.extend(invalid_list)
+            for act_name in invalid_items:
+                lines.append(f"- `{act_name}`: INVALID (Not found on GitHub)")
+
         if lines:
             action_info = "\n## GitHub Actions Ground Truth\n" + "\n".join(lines) + "\n"
 

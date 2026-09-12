@@ -15,6 +15,8 @@
 """Core models, configuration, and interfaces for Poing AI."""
 
 from poing_ai.core.models import (
+    ActionInput,
+    ActionSchema,
     ReviewVerdict,
     ReviewFinding,
     ReviewComment,
@@ -27,6 +29,8 @@ from poing_ai.core.models import (
 from poing_ai.core.config import Config
 
 __all__ = [
+    "ActionInput",
+    "ActionSchema",
     "ReviewVerdict",
     "ReviewFinding",
     "ReviewComment",

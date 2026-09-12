@@ -211,6 +211,7 @@ class Config:
         config_data: Optional[Dict[str, Any]] = None,
         auto_work_on_issues: Optional[bool] = None,
         labels: Optional[List[str]] = None,
+        enable_search_grounding: Optional[bool] = None,
     ):
         file_config = config_data if config_data is not None else load_repo_config()
         self.file_config = file_config
@@ -345,6 +346,15 @@ class Config:
         self.MAX_CHARS = max_chars or int(get_env_optional("MAX_CHARS", str(default_max_chars)))
         self.MAX_BATCHES = max_batches or int(get_env_optional("MAX_BATCHES", str(section_cfg.get("max_batches", 5))))
         self.STRICT_GROUND_TRUTH = section_cfg.get("strict_ground_truth", True)
+        self.ENABLE_SEARCH_GROUNDING = (
+            enable_search_grounding
+            if enable_search_grounding is not None
+            else (
+                get_env_optional("ENABLE_SEARCH_GROUNDING", "false").lower() == "true"
+                or section_cfg.get("enable_search_grounding", False)
+                or file_config.get("enable_search_grounding", False)
+            )
+        )
 
         # Dependency sync policies
         deps_cfg = file_config.get("dependencies", {})
