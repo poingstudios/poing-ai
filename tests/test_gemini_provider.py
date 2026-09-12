@@ -97,12 +97,48 @@ class TestGeminiProvider(unittest.TestCase):
             sent_payload = mock_post.call_args[1]["json"]
             self.assertIn("tools", sent_payload)
             self.assertEqual(sent_payload["tools"], [{"google_search": {}}])
+            # Must NOT combine tools with responseMimeType
+            self.assertNotIn("responseMimeType", sent_payload.get("generationConfig", {}))
 
         with patch("requests.post", return_value=mock_response) as mock_post:
             provider_without_grounding.generate_review("Prompt text")
             self.assertTrue(mock_post.called)
             sent_payload = mock_post.call_args[1]["json"]
             self.assertNotIn("tools", sent_payload)
+            self.assertEqual(sent_payload.get("generationConfig", {}).get("responseMimeType"), "application/json")
+
+    def test_gemini_provider_search_grounding_fallback_on_error(self):
+        provider = GeminiProvider(api_key="mock_key", enable_search_grounding=True, models_to_try=["gemini-2.5-flash"])
+
+        mock_err_400 = MagicMock()
+        mock_err_400.status_code = 400
+        mock_err_400.text = "Tool use with response mime type is unsupported"
+
+        mock_ok = MagicMock()
+        mock_ok.status_code = 200
+        mock_ok.json.return_value = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": '{"verdict": "APPROVED", "summary": "Fallback worked!", "findings": [], "comments": []}'
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+
+        # First call fails with 400 (grounding error), second call retries without tools and succeeds
+        with patch("requests.post", side_effect=[mock_err_400, mock_ok]) as mock_post:
+            result = provider.generate_review("Prompt text")
+            self.assertEqual(mock_post.call_count, 2)
+            # Second call must not contain tools
+            second_payload = mock_post.call_args_list[1][1]["json"]
+            self.assertNotIn("tools", second_payload)
+            self.assertIsNotNone(result)
+            self.assertEqual(result.summary, "Fallback worked!")
 
 
 if __name__ == "__main__":

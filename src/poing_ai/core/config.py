@@ -348,15 +348,15 @@ class Config:
         self.MAX_CHARS = max_chars or int(get_env_optional("MAX_CHARS", str(default_max_chars)))
         self.MAX_BATCHES = max_batches or int(get_env_optional("MAX_BATCHES", str(section_cfg.get("max_batches", 5))))
         self.STRICT_GROUND_TRUTH = section_cfg.get("strict_ground_truth", True)
-        raw_grounding = get_env_optional("ENABLE_SEARCH_GROUNDING", "true").strip().lower()
-        env_grounding = raw_grounding not in ("false", "0", "no", "off")
+        raw_grounding = get_env_optional("ENABLE_SEARCH_GROUNDING", "false").strip().lower()
+        env_grounding = raw_grounding in ("true", "1", "yes", "on")
         self.ENABLE_SEARCH_GROUNDING = (
             enable_search_grounding
             if enable_search_grounding is not None
             else (
                 env_grounding
-                and section_cfg.get("enable_search_grounding", True)
-                and file_config.get("enable_search_grounding", True)
+                or section_cfg.get("enable_search_grounding", False)
+                or file_config.get("enable_search_grounding", False)
             )
         )
 

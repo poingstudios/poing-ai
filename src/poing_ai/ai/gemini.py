@@ -182,10 +182,11 @@ class GeminiProvider(BaseAIProvider):
             "generationConfig": config,
         }
 
-        if self.enable_search_grounding:
+        # Google Gemini API rejects requests that combine tools with responseMimeType='application/json'
+        use_tools = self.enable_search_grounding and "gemma" not in model_name.lower()
+        if use_tools:
             payload["tools"] = [{"google_search": {}}]
-
-        if response_schema:
+        elif response_schema:
             payload["generationConfig"]["responseMimeType"] = "application/json"
             # Gemma models on AI Studio do not support strict responseSchema
             if "gemma" not in model_name.lower():
@@ -215,6 +216,18 @@ class GeminiProvider(BaseAIProvider):
                         if not part.get("thought", False):
                             feedback += part.get("text", "")
                     return feedback.strip() if feedback.strip() else None
+
+                # If search grounding failed with 400 (unsupported) or 429 (quota exceeded),
+                # retry immediately WITHOUT tools so the review/triage doesn't fail.
+                if "tools" in payload and resp.status_code in (400, 429):
+                    logger.warning(
+                        f"Search grounding failed on {model_name} ({resp.status_code}). Retrying without search grounding..."
+                    )
+                    del payload["tools"]
+                    if response_schema and "gemma" not in model_name.lower():
+                        payload["generationConfig"]["responseMimeType"] = "application/json"
+                        payload["generationConfig"]["responseSchema"] = response_schema
+                    continue
 
                 if resp.status_code == 429:
                     resp_text = resp.text.lower()
@@ -327,35 +340,40 @@ class GeminiProvider(BaseAIProvider):
         prompt: str,
         model_name: Optional[str] = None,
     ) -> Optional[TriageResult]:
-        models = [model_name] if model_name else self.models_to_try
-        for model in models:
-            logger.info(f"Generating triage using {model}...")
-            raw = self._call_model(
-                prompt,
-                model,
-                generation_config={"temperature": 0.1, "maxOutputTokens": 1024},
-                response_schema=TRIAGE_SCHEMA,
-            )
-            if not raw:
-                continue
-            data = self._parse_json(raw)
-            if not data or "priority" not in data:
-                continue
+        prev_grounding = self.enable_search_grounding
+        self.enable_search_grounding = False
+        try:
+            models = [model_name] if model_name else self.models_to_try
+            for model in models:
+                logger.info(f"Generating triage using {model}...")
+                raw = self._call_model(
+                    prompt,
+                    model,
+                    generation_config={"temperature": 0.1, "maxOutputTokens": 1024},
+                    response_schema=TRIAGE_SCHEMA,
+                )
+                if not raw:
+                    continue
+                data = self._parse_json(raw)
+                if not data or "priority" not in data:
+                    continue
 
-            p_str = data.get("priority", "medium").lower()
-            try:
-                priority = TriagePriority(p_str)
-            except ValueError:
-                priority = TriagePriority.MEDIUM
+                p_str = data.get("priority", "medium").lower()
+                try:
+                    priority = TriagePriority(p_str)
+                except ValueError:
+                    priority = TriagePriority.MEDIUM
 
-            self.last_used_model = model
-            return TriageResult(
-                labels=data.get("labels", []),
-                priority=priority,
-                summary=data.get("summary", ""),
-                is_duplicate=data.get("is_duplicate", False),
-            )
-        return None
+                self.last_used_model = model
+                return TriageResult(
+                    labels=data.get("labels", []),
+                    priority=priority,
+                    summary=data.get("summary", ""),
+                    is_duplicate=data.get("is_duplicate", False),
+                )
+            return None
+        finally:
+            self.enable_search_grounding = prev_grounding
 
     def generate_changelog_summary(
         self,
@@ -380,36 +398,41 @@ class GeminiProvider(BaseAIProvider):
         prompt: str,
         model_name: Optional[str] = None,
     ) -> Optional[FixResult]:
-        models = [model_name] if model_name else self.models_to_try
-        for model in models:
-            logger.info(f"Generating automated fix using {model}...")
-            raw = self._call_model(
-                prompt,
-                model,
-                response_schema=FIX_SCHEMA,
-                generation_config={"temperature": 0.2},
-            )
-            if not raw:
-                continue
-            data = self._parse_json(raw)
-            if not data or "fixes" not in data:
-                continue
-
-            fixes = [
-                FileFix(
-                    file_path=f.get("file_path", ""),
-                    explanation=f.get("explanation", ""),
-                    original_snippet=f.get("original_snippet", ""),
-                    replacement_snippet=f.get("replacement_snippet", ""),
+        prev_grounding = self.enable_search_grounding
+        self.enable_search_grounding = False
+        try:
+            models = [model_name] if model_name else self.models_to_try
+            for model in models:
+                logger.info(f"Generating automated fix using {model}...")
+                raw = self._call_model(
+                    prompt,
+                    model,
+                    response_schema=FIX_SCHEMA,
+                    generation_config={"temperature": 0.2},
                 )
-                for f in data.get("fixes", [])
-                if f.get("file_path") and f.get("original_snippet") is not None and f.get("replacement_snippet") is not None
-            ]
-            self.last_used_model = model
-            return FixResult(
-                summary=data.get("summary", ""),
-                fixes=fixes,
-                model=self.last_used_model,
-                tests_passed=True,
-            )
-        return None
+                if not raw:
+                    continue
+                data = self._parse_json(raw)
+                if not data or "fixes" not in data:
+                    continue
+
+                fixes = [
+                    FileFix(
+                        file_path=f.get("file_path", ""),
+                        explanation=f.get("explanation", ""),
+                        original_snippet=f.get("original_snippet", ""),
+                        replacement_snippet=f.get("replacement_snippet", ""),
+                    )
+                    for f in data.get("fixes", [])
+                    if f.get("file_path") and f.get("original_snippet") is not None and f.get("replacement_snippet") is not None
+                ]
+                self.last_used_model = model
+                return FixResult(
+                    summary=data.get("summary", ""),
+                    fixes=fixes,
+                    model=self.last_used_model,
+                    tests_passed=True,
+                )
+            return None
+        finally:
+            self.enable_search_grounding = prev_grounding
